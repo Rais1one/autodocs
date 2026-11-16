@@ -56,11 +56,15 @@ static class ProjectInspector
         Console.WriteLine();
         Console.WriteLine("Найденные классы:");
 
-        foreach (var tree in project.Documents)
+        foreach (var document in project.Documents)
         {
-            var root = await tree.GetSyntaxRootAsync();
+            var root = await document.GetSyntaxRootAsync();
+            if (root is null)
+            {
+                continue;
+            }
             var classes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
-
+            var fileName = Path.GetFileName(document.FilePath);
 
             foreach (var classNode in classes)
             {
@@ -68,23 +72,25 @@ static class ProjectInspector
                 {
 
                     var line = classNode.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
-                    var fileName = Path.GetFileName(tree.FilePath);
-                    classNode.IsKind(SyntaxKind.ClassDeclaration);
-                    var cl = classNode.Members.OfType<MethodDeclarationSyntax>();
+                    var methods = classNode.Members.OfType<MethodDeclarationSyntax>();
 
 
                     Console.WriteLine($"  {classNode.Identifier.Text}  ({fileName}:{line}) ");
 
-                    foreach (var c in cl)
+                    foreach (var method in methods)
                     {
-                        if (c.Modifiers.Any(SyntaxKind.PublicKeyword))
+                        if (method.Modifiers.Any(SyntaxKind.PublicKeyword))
                         {
-                            Console.WriteLine($"        |- {c.Identifier.Text} ");
-                            var at = c.AttributeLists;
-                            foreach (var c2 in at)
+                            Console.WriteLine($"        |- {method.Identifier.Text} ");
+                            var attributeLists = method.AttributeLists;
+                            foreach (var attributeList in attributeLists)
                             {
-                                Console.WriteLine($"             |-{c2}  ");
+                                var attributes = attributeList.Attributes;
                                 
+                                foreach(var attribute in attributes)
+                                {
+                                    Console.WriteLine($"            |-{attribute.Name.ToString()} {attribute.ArgumentList} ");
+                                }
                             }
                         }
                         
