@@ -1,7 +1,9 @@
 ﻿using Microsoft.Build.Locator;
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.MSBuild;
+
 
 // 1. Регистрируем MSBuild. Это должно произойти раньше,
 //    чем загрузится любой тип из MSBuild или Roslyn Workspaces.
@@ -54,17 +56,40 @@ static class ProjectInspector
         Console.WriteLine();
         Console.WriteLine("Найденные классы:");
 
-        foreach (var tree in compilation.SyntaxTrees)
+        foreach (var tree in project.Documents)
         {
-            var root = await tree.GetRootAsync();
+            var root = await tree.GetSyntaxRootAsync();
             var classes = root.DescendantNodes().OfType<ClassDeclarationSyntax>();
+
 
             foreach (var classNode in classes)
             {
-                var line = classNode.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
-                var fileName = Path.GetFileName(tree.FilePath);
+                if (classNode.Identifier.Text.EndsWith("Controller", StringComparison.OrdinalIgnoreCase) && !classNode.Modifiers.Any(SyntaxKind.AbstractKeyword))
+                {
 
-                Console.WriteLine($"  {classNode.Identifier.Text}  ({fileName}:{line})");
+                    var line = classNode.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
+                    var fileName = Path.GetFileName(tree.FilePath);
+                    classNode.IsKind(SyntaxKind.ClassDeclaration);
+                    var cl = classNode.Members.OfType<MethodDeclarationSyntax>();
+
+
+                    Console.WriteLine($"  {classNode.Identifier.Text}  ({fileName}:{line}) ");
+
+                    foreach (var c in cl)
+                    {
+                        if (c.Modifiers.Any(SyntaxKind.PublicKeyword))
+                        {
+                            Console.WriteLine($"        |- {c.Identifier.Text} ");
+                            var at = c.AttributeLists;
+                            foreach (var c2 in at)
+                            {
+                                Console.WriteLine($"             |-{c2}  ");
+                                
+                            }
+                        }
+                        
+                    }
+                }
             }
         }
 
