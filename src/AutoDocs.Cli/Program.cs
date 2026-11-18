@@ -81,7 +81,7 @@ static class ProjectInspector
                     {
                         if (method.Modifiers.Any(SyntaxKind.PublicKeyword))
                         {
-                            Console.WriteLine($"        |- {method.Identifier.Text} ");
+                            Console.WriteLine($"        |_ {method.Identifier.Text} ");
                             var attributeLists = method.AttributeLists;
                             foreach (var attributeList in attributeLists)
                             {
@@ -89,7 +89,7 @@ static class ProjectInspector
                                 
                                 foreach(var attribute in attributes)
                                 {
-                                    Console.WriteLine($"            |-{attribute.Name.ToString()} {attribute.ArgumentList} ");
+                                    Console.WriteLine($"            |_{attribute.Name.ToString()} {attribute.ArgumentList} ");
                                 }
                             }
                         }

@@ -4,5 +4,6 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/AutoDocs.Cli/AutoDocs.Cli.csproj" />
+    <Project Path="src/AutoDocs.Core/AutoDocs.Core.csproj" />
   </Folder>
 </Solution>
