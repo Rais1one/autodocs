@@ -43,6 +43,11 @@ namespace AutoDocs.Core.Analysis
                 if (root is null)
                     continue;
 
+                var semanticModel = await document.GetSemanticModelAsync();
+
+                if (semanticModel is null)
+                    continue;
+
                 var classes = root.DescendantNodes()
                     .OfType<ClassDeclarationSyntax>();
 
@@ -102,14 +107,20 @@ namespace AutoDocs.Core.Analysis
 
                         Console.WriteLine(
                             $"        |_ {method.Identifier.Text}");
+                        Console.WriteLine($"Возвращаемый тип: {GetResponseType(method.ReturnType)}");
 
                         HttpVerb? verbs = null;
                         string? route = null;
+                        var responses = new List<ApiResponse>();
 
                         foreach (var attributeList in method.AttributeLists)
                         {
                             foreach (var attribute in attributeList.Attributes)
                             {
+
+
+
+
                                 HttpVerb? verb = attribute.Name.ToString() switch
                                 {
                                     "HttpPost" or "HttpPostAttribute" => HttpVerb.Post,
@@ -131,6 +142,75 @@ namespace AutoDocs.Core.Analysis
                                         route = literal.Token.ValueText;
                                     }
                                 }
+                                if (attribute.Name.ToString() is "ProducesResponseType" or "ProducesResponseTypeAttribute")
+                                {
+
+
+                                    if (attribute.ArgumentList != null)
+                                    {
+                                        string responseType = "не указан";
+                                        int? statuscode = null;
+                                        var arr = attribute.ArgumentList;
+
+                                        foreach (var argument in arr.Arguments)
+                                        {
+                                            if (argument.Expression is TypeOfExpressionSyntax typeOfExpr)
+                                            {
+                                                responseType = typeOfExpr.Type.ToString();
+                                            }
+                                            else
+                                            {
+                                                var constant = semanticModel.GetConstantValue(argument.Expression);
+
+                                                if (constant.HasValue && constant.Value is int statusCode)
+                                                {
+                                                    statuscode = statusCode;
+                                                }
+                                            }
+                                        }
+
+                                        if (responseType == "не указан" &&
+                                            statuscode is >= 200 and < 300 &&
+                                            statuscode != 204)
+                                        {
+                                            string methodResponseType = GetResponseType(method.ReturnType);
+
+                                            if (methodResponseType != "IActionResult" &&
+                                                methodResponseType != "ActionResult" &&
+                                                methodResponseType != "void")
+                                            {
+                                                responseType = methodResponseType;
+                                            }
+                                        }
+
+                                        if (statuscode.HasValue)
+                                        {
+                                            responses.Add(new ApiResponse(
+                                                statuscode.Value,
+                                                responseType == "не указан" ? null : responseType
+                                            ));
+                                        }
+
+                                        Console.WriteLine(
+                                            $"Найден атрибут: {attribute.ArgumentList} " +
+                                            $"HTTP-статус: {statuscode} Тип: {responseType}");
+                                    }
+
+                                }
+                            }
+                        }
+
+
+                        if (responses.Count == 0)
+                        {
+                            string responseType = GetResponseType(method.ReturnType);
+
+                            if (responseType is not ("IActionResult" or "ActionResult" or "void"))
+                            {
+                                responses.Add(new ApiResponse(
+                                    200,
+                                    responseType
+                                ));
                             }
                         }
 
@@ -236,7 +316,7 @@ namespace AutoDocs.Core.Analysis
                             fullRoute,
                             key,
                             parameters,
-                            []
+                            responses
                         ));
                     }
                 }
@@ -305,5 +385,23 @@ namespace AutoDocs.Core.Analysis
                 "DateOnly" or "System.DateOnly" or
                 "TimeOnly" or "System.TimeOnly";
         }
+
+        private static string GetResponseType(TypeSyntax returnType)
+        {
+            if (returnType is GenericNameSyntax generic)
+            {
+                string name = generic.Identifier.Text;
+                if (name is "Task" or "ActionResult" or "ValueTask")
+                {
+                    TypeSyntax innerType =
+                        generic.TypeArgumentList.Arguments[0];
+
+                    return GetResponseType(innerType);
+                }
+            }
+
+            return returnType.ToString();
+        }
+
     }
 }
