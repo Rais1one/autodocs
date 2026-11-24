@@ -24,8 +24,14 @@ public class MarkdownGenerator
             document.Root.Add(
                 new MdHeading($"{method} {endpoint.Route}", 2));
 
-            document.Root.Add(
-                new MdHeading("Параметры", 3));
+            // Описание эндпоинта
+            if (!string.IsNullOrWhiteSpace(endpoint.Summary))
+            {
+                document.Root.Add(
+                    new MdParagraph(endpoint.Summary));
+            }
+
+            document.Root.Add(new MdHeading("Параметры", 3));
 
             if (endpoint.Parameters.Count == 0)
             {
@@ -37,14 +43,26 @@ public class MarkdownGenerator
             {
                 var required = parameter.IsRequired ? "Да" : "Нет";
 
-                document.Root.Add(new MdParagraph(
+                var text =
                     $"{parameter.Name}: {parameter.Type}; " +
                     $"Источник: {parameter.Source}; " +
-                    $"Обязательный: {required}"));
+                    $"Обязательный: {required}";
+
+                if (!string.IsNullOrWhiteSpace(parameter.Description))
+                {
+                    text += $"; Описание: {parameter.Description}";
+                }
+
+                document.Root.Add(new MdParagraph(text));
             }
 
-            document.Root.Add(
-                new MdHeading("Ответы", 3));
+            document.Root.Add(new MdHeading("Ответы", 3));
+
+            if (!string.IsNullOrWhiteSpace(endpoint.Returns))
+            {
+                document.Root.Add(
+                    new MdParagraph(endpoint.Returns));
+            }
 
             foreach (var response in endpoint.Responses)
             {

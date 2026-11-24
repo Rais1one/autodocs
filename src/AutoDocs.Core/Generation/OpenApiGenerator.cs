@@ -46,7 +46,7 @@ public class OpenApiGenerator
                     $"Duplicate operation: {method} {path}");
             }
 
-            pathItem.AddOperation(
+            ((OpenApiPathItem)pathItem).AddOperation(
                 method,
                 CreateOperation(endpoint));
         }
@@ -61,9 +61,12 @@ public class OpenApiGenerator
     {
         var operation = new OpenApiOperation
         {
+            Summary = endpoint.Summary,
+            Description = endpoint.Returns,
             Parameters = new List<IOpenApiParameter>(),
             Responses = new OpenApiResponses()
         };
+
 
         foreach (var parameter in endpoint.Parameters)
         {
@@ -71,8 +74,9 @@ public class OpenApiGenerator
             {
                 operation.RequestBody = new OpenApiRequestBody
                 {
+                    Description = parameter.Description,
                     Required = parameter.IsRequired,
-                    Content = new Dictionary<string, OpenApiMediaType>
+                    Content = new Dictionary<string, IOpenApiMediaType>
                     {
                         ["application/json"] = new OpenApiMediaType
                         {
@@ -87,6 +91,7 @@ public class OpenApiGenerator
             operation.Parameters.Add(new OpenApiParameter
             {
                 Name = parameter.Name,
+                Description = parameter.Description,
 
                 In = parameter.Source switch
                 {
@@ -115,7 +120,7 @@ public class OpenApiGenerator
             if (!string.IsNullOrWhiteSpace(response.TypeName))
             {
                 apiResponse.Content =
-                    new Dictionary<string, OpenApiMediaType>
+                    new Dictionary<string, IOpenApiMediaType>
                     {
                         ["application/json"] = new OpenApiMediaType
                         {
@@ -141,20 +146,71 @@ public class OpenApiGenerator
 
     private static OpenApiSchema CreateSchema(string typeName)
     {
+        typeName = typeName.Trim().TrimEnd('?');
+
         var (type, format) = TypeMapper.Map(typeName);
+
+        if (type != "object")
+        {
+            return new OpenApiSchema
+            {
+                Type = type switch
+                {
+                    "integer" => JsonSchemaType.Integer,
+                    "number" => JsonSchemaType.Number,
+                    "boolean" => JsonSchemaType.Boolean,
+                    "string" => JsonSchemaType.String,
+                    _ => JsonSchemaType.Object
+                },
+                Format = format
+            };
+        }
+
+        if (typeName.EndsWith("[]"))
+        {
+            return new OpenApiSchema
+            {
+                Type = JsonSchemaType.Array,
+                Items = CreateSchema(typeName[..^2])
+            };
+        }
+
+        string[] collectionTypes =
+        {
+        "IEnumerable",
+        "ICollection",
+        "IList",
+        "List",
+        "IReadOnlyList",
+        "IReadOnlyCollection",
+        "HashSet",
+        "Collection",
+        "IAsyncEnumerable"
+    };
+
+        foreach (var collection in collectionTypes)
+        {
+            var prefix = collection + "<";
+
+            if (typeName.StartsWith(prefix) &&
+                typeName.EndsWith(">"))
+            {
+                var itemType = typeName[
+                    prefix.Length..^1];
+
+                return new OpenApiSchema
+                {
+                    Type = JsonSchemaType.Array,
+                    Items = CreateSchema(itemType)
+                };
+            }
+        }
 
         return new OpenApiSchema
         {
-            Type = type switch
-            {
-                "integer" => JsonSchemaType.Integer,
-                "number" => JsonSchemaType.Number,
-                "boolean" => JsonSchemaType.Boolean,
-                "string" => JsonSchemaType.String,
-                _ => JsonSchemaType.Object
-            },
-
-            Format = format
+            Type = JsonSchemaType.Object,
+            Title = typeName
         };
     }
+
 }

@@ -1,0 +1,278 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "DemoApi",
+    "version": "v1"
+  },
+  "paths": {
+    "/api/Orders": {
+      "get": {
+        "summary": "Получить заказы клиента.",
+        "description": "Список заказов.",
+        "parameters": [
+          {
+            "name": "clientId",
+            "in": "header",
+            "description": "Идентификатор клиентского приложения из заголовка.",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "userId",
+            "in": "query",
+            "description": "Фильтр по пользователю; если не задан, возвращаются все заказы.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "HTTP 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "title": "OrderDto",
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Создать заказ.",
+        "description": "Созданный заказ.",
+        "requestBody": {
+          "description": "Данные заказа.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "title": "CreateOrderRequest",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "HTTP 201",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "OrderDto",
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Orders/{id}": {
+      "get": {
+        "summary": "Получить заказ по идентификатору.",
+        "description": "Найденный заказ.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Идентификатор заказа.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "HTTP 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "OrderDto",
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "HTTP 404"
+          }
+        }
+      }
+    },
+    "/api/Users": {
+      "get": {
+        "summary": "Получить список пользователей с постраничным выводом.",
+        "description": "Список пользователей.",
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "description": "Номер страницы, начиная с 1.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          {
+            "name": "pageSize",
+            "in": "query",
+            "description": "Количество записей на странице.",
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "HTTP 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "title": "UserDto",
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Создать нового пользователя.",
+        "description": "Созданный пользователь.",
+        "requestBody": {
+          "description": "Данные нового пользователя.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "title": "CreateUserRequest",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "HTTP 201",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "UserDto",
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "HTTP 400"
+          }
+        }
+      }
+    },
+    "/api/Users/{id}": {
+      "get": {
+        "summary": "Получить пользователя по идентификатору.",
+        "description": "Найденный пользователь.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Идентификатор пользователя.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "HTTP 200",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "UserDto",
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "HTTP 404"
+          }
+        }
+      },
+      "put": {
+        "summary": "Обновить данные пользователя.",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "description": "Идентификатор пользователя.",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "description": "Новые данные пользователя.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "title": "UpdateUserRequest",
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "HTTP 204"
+          },
+          "404": {
+            "description": "HTTP 404"
+          }
+        }
+      },
+      "delete": {
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "HTTP 204"
+          },
+          "404": {
+            "description": "HTTP 404"
+          }
+        }
+      }
+    }
+  }
+}

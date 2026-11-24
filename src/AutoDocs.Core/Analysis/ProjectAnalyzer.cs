@@ -1,5 +1,5 @@
-﻿
-using AutoDocs.Core.Model;
+﻿using AutoDocs.Core.Model;
+using AutoDocs.Core.Normalization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -31,6 +31,7 @@ namespace AutoDocs.Core.Analysis
 
             Console.WriteLine(
                 $"Проект: {project.Name}, файлов: {project.Documents.Count()}");
+
             Console.WriteLine();
             Console.WriteLine("Найденные классы:");
 
@@ -107,7 +108,9 @@ namespace AutoDocs.Core.Analysis
 
                         Console.WriteLine(
                             $"        |_ {method.Identifier.Text}");
-                        Console.WriteLine($"Возвращаемый тип: {GetResponseType(method.ReturnType)}");
+
+                        Console.WriteLine(
+                            $"Возвращаемый тип: {GetResponseType(method.ReturnType)}");
 
                         HttpVerb? verbs = null;
                         string? route = null;
@@ -117,10 +120,6 @@ namespace AutoDocs.Core.Analysis
                         {
                             foreach (var attribute in attributeList.Attributes)
                             {
-
-
-
-
                                 HttpVerb? verb = attribute.Name.ToString() switch
                                 {
                                     "HttpPost" or "HttpPostAttribute" => HttpVerb.Post,
@@ -142,14 +141,16 @@ namespace AutoDocs.Core.Analysis
                                         route = literal.Token.ValueText;
                                     }
                                 }
-                                if (attribute.Name.ToString() is "ProducesResponseType" or "ProducesResponseTypeAttribute")
+
+                                if (attribute.Name.ToString() is
+                                    "ProducesResponseType" or
+                                    "ProducesResponseTypeAttribute")
                                 {
-
-
                                     if (attribute.ArgumentList != null)
                                     {
                                         string responseType = "не указан";
                                         int? statuscode = null;
+
                                         var arr = attribute.ArgumentList;
 
                                         foreach (var argument in arr.Arguments)
@@ -160,9 +161,11 @@ namespace AutoDocs.Core.Analysis
                                             }
                                             else
                                             {
-                                                var constant = semanticModel.GetConstantValue(argument.Expression);
+                                                var constant = semanticModel
+                                                    .GetConstantValue(argument.Expression);
 
-                                                if (constant.HasValue && constant.Value is int statusCode)
+                                                if (constant.HasValue &&
+                                                    constant.Value is int statusCode)
                                                 {
                                                     statuscode = statusCode;
                                                 }
@@ -173,7 +176,8 @@ namespace AutoDocs.Core.Analysis
                                             statuscode is >= 200 and < 300 &&
                                             statuscode != 204)
                                         {
-                                            string methodResponseType = GetResponseType(method.ReturnType);
+                                            string methodResponseType =
+                                                GetResponseType(method.ReturnType);
 
                                             if (methodResponseType != "IActionResult" &&
                                                 methodResponseType != "ActionResult" &&
@@ -187,7 +191,9 @@ namespace AutoDocs.Core.Analysis
                                         {
                                             responses.Add(new ApiResponse(
                                                 statuscode.Value,
-                                                responseType == "не указан" ? null : responseType
+                                                responseType == "не указан"
+                                                    ? null
+                                                    : responseType
                                             ));
                                         }
 
@@ -195,17 +201,17 @@ namespace AutoDocs.Core.Analysis
                                             $"Найден атрибут: {attribute.ArgumentList} " +
                                             $"HTTP-статус: {statuscode} Тип: {responseType}");
                                     }
-
                                 }
                             }
                         }
 
-
                         if (responses.Count == 0)
                         {
-                            string responseType = GetResponseType(method.ReturnType);
+                            string responseType =
+                                GetResponseType(method.ReturnType);
 
-                            if (responseType is not ("IActionResult" or "ActionResult" or "void"))
+                            if (responseType is not
+                                ("IActionResult" or "ActionResult" or "void"))
                             {
                                 responses.Add(new ApiResponse(
                                     200,
@@ -217,19 +223,37 @@ namespace AutoDocs.Core.Analysis
                         if (verbs is null)
                             continue;
 
-                        string controllerName = name.Replace("Controller", "");
+                        var methodSymbol = semanticModel.GetDeclaredSymbol(method);
 
-                        string controllerRoute = (r ?? "api/[controller]")
+                        var documentation = XmlDocumentationReader.Read(methodSymbol);
+
+                        var summary = XmlDocumentationReader.GetSummary(documentation);
+                        var returns = XmlDocumentationReader.GetReturns(documentation);
+
+                        if (string.IsNullOrWhiteSpace(summary))
+                        {
+                            Console.WriteLine(
+                                $"Предупреждение: отсутствует XML-описание метода {method.Identifier.Text}");
+                        }
+
+
+                        string controllerName =
+                            name.Replace("Controller", "");
+
+                        string controllerRoute =
+                            (r ?? "api/[controller]")
                             .Replace("[controller]", controllerName);
 
                         string fullRoute = string.IsNullOrEmpty(route)
                             ? controllerRoute
                             : $"{controllerRoute.TrimEnd('/')}/{route.TrimStart('/')}";
 
+                        
+                        fullRoute = RouteNormalizer.Normalize(fullRoute);
+
                         string key =
                             $"{verbs.Value.ToString().ToUpperInvariant()} {fullRoute}";
 
-                        // Список параметров конкретного эндпоинта
                         var parameters = new List<Parameter>();
 
                         foreach (var parameter in method.ParameterList.Parameters)
@@ -289,19 +313,20 @@ namespace AutoDocs.Core.Analysis
                                 sources = ParameterSource.Body;
                             }
 
-                            
                             bool isRequired =
                                 sources == ParameterSource.Route ||
                                 (!typeName.EndsWith("?") &&
                                  parameter.Default is null);
 
-                            
-                            parameters.Add(new Parameter(
-                                parameterName,
-                                typeName,
-                                sources.Value,
-                                isRequired
-                            ));
+                            parameters.Add(new Parameter
+                                (
+                                    parameterName,
+                                    typeName,
+                                    sources.Value,
+                                    isRequired,
+                                    XmlDocumentationReader.GetParameter(documentation, parameterName)
+                                ));
+
 
                             Console.WriteLine(
                                 $"            |_ {parameterName} " +
@@ -310,14 +335,16 @@ namespace AutoDocs.Core.Analysis
                                 $"обязательный: {isRequired}");
                         }
 
-                       
                         endpoints.Add(new Endpoint(
                             verbs.Value,
                             fullRoute,
                             key,
                             parameters,
-                            responses
+                            responses,
+                            summary,
+                            returns
                         ));
+
                     }
                 }
             }
@@ -344,6 +371,7 @@ namespace AutoDocs.Core.Analysis
 
                 string content = segment.Trim('{', '}');
                 string name = content.Split(':')[0];
+
                 name = name.TrimEnd('?');
 
                 if (string.Equals(
@@ -391,6 +419,7 @@ namespace AutoDocs.Core.Analysis
             if (returnType is GenericNameSyntax generic)
             {
                 string name = generic.Identifier.Text;
+
                 if (name is "Task" or "ActionResult" or "ValueTask")
                 {
                     TypeSyntax innerType =
@@ -402,6 +431,5 @@ namespace AutoDocs.Core.Analysis
 
             return returnType.ToString();
         }
-
     }
 }
