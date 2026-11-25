@@ -3,6 +3,7 @@
     <Project Path="samples/DemoApi/DemoApi.csproj" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/AutoDocs.Application/AutoDocs.Application.csproj" />
     <Project Path="src/AutoDocs.Cli/AutoDocs.Cli.csproj" />
     <Project Path="src/AutoDocs.Core/AutoDocs.Core.csproj" />
   </Folder>

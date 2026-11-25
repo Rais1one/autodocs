@@ -422,4 +422,29 @@ public class ApiComparerTests
             d => d.Kind == DiscrepancyKind.EndpointAdded ||
                  d.Kind == DiscrepancyKind.EndpointRemoved);
     }
+
+    [Fact]
+    public void Compare_DifferenceContainsSourceLocation()
+    {
+        var documented = CreateEndpoint();
+
+        var current = documented with
+        {
+            Summary = "Новое описание",
+            FilePath = "Controllers/UsersController.cs",
+            Line = 18
+        };
+
+        var differences = _comparer.Compare(
+            CreateApi(documented),
+            CreateApi(current));
+
+        var difference = Assert.Single(differences);
+
+        Assert.Equal(current.FilePath, difference.FilePath);
+        Assert.Equal(current.Line, difference.Line);
+    }
+
+
+
 }

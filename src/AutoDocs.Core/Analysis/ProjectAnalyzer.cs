@@ -335,10 +335,10 @@ namespace AutoDocs.Core.Analysis
                                 $"обязательный: {isRequired}");
                         }
 
-                        var location = method.Identifier.GetLocation().GetLineSpan();
+                        var methodLocation = method.Identifier.GetLocation().GetLineSpan();
+                        var methodFilePath = methodLocation.Path;
+                        var methodLine = methodLocation.StartLinePosition.Line + 1;
 
-                        var filePath = location.Path;
-                        var line = location.StartLinePosition.Line + 1;
 
                         endpoints.Add(new Endpoint(
                             verbs.Value,
@@ -348,8 +348,9 @@ namespace AutoDocs.Core.Analysis
                             responses,
                             summary,
                             returns,
-                            filePath,
-                            line
+                            methodFilePath,
+                            methodLine
+
                         ));
 
                     }
