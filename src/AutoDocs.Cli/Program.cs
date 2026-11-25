@@ -1,48 +1,65 @@
 ﻿using Microsoft.Build.Locator;
 using AutoDocs.Core.Analysis;
-using AutoDocs.Core.Generation;
+using AutoDocs.Core.Comparison;
 
-var instance = MSBuildLocator.RegisterDefaults();
-Console.WriteLine($"MSBuild: {instance.Name} {instance.Version}");
+MSBuildLocator.RegisterDefaults();
 
-if (args.Length == 0)
+if (args.Length < 2)
 {
-    Console.WriteLine("Использование: AutoDocs.Cli <путь к файлу .csproj>");
+    Console.WriteLine(
+        "Использование: AutoDocs.Cli <проект.csproj> <openapi.json>");
+
     return 2;
 }
 
-var projectPath = Path.GetFullPath(args[0]);
-
-if (!File.Exists(projectPath))
+try
 {
-    Console.WriteLine($"Файл не найден: {projectPath}");
+    var projectPath = Path.GetFullPath(args[0]);
+    var docsPath = Path.GetFullPath(args[1]);
+
+    var analyzer = new ProjectAnalyzer();
+    var reader = new OpenApiReader();
+    var comparer = new ApiComparer();
+
+    var current = await analyzer.AnalyzeAsync(projectPath);
+    var documented = await reader.ReadAsync(docsPath);
+
+    var differences = comparer.Compare(documented, current);
+
+    Console.WriteLine();
+    Console.WriteLine("Результаты проверки:");
+    Console.WriteLine($"Эндпоинтов в коде: {current.Endpoints.Count}");
+    Console.WriteLine($"Эндпоинтов в документации: {documented.Endpoints.Count}");
+    Console.WriteLine($"Расхождений: {differences.Count}");
+
+    foreach (var difference in differences)
+    {
+        Console.WriteLine(
+            $"[{difference.Severity}] " +
+            $"{difference.EndpointKey}: " +
+            $"{difference.Message}");
+
+        if (difference.OldValue is not null)
+            Console.WriteLine($"  Было: {difference.OldValue}");
+
+        if (difference.NewValue is not null)
+            Console.WriteLine($"  Стало: {difference.NewValue}");
+    }
+
+    if (differences.Count == 0)
+    {
+        Console.WriteLine("Документация актуальна.");
+        return 0;
+    }
+
+    Console.WriteLine("Документация неактуальна.");
+    return 1;
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Ошибка: {ex.Message}");
     return 2;
 }
 
-// Анализ проекта
-var analyzer = new ProjectAnalyzer();
-var apiDescription = await analyzer.AnalyzeAsync(projectPath);
 
-// Создание папки для документации
-var outputDirectory = Path.Combine(
-    Path.GetDirectoryName(projectPath)!, "docs");
-
-Directory.CreateDirectory(outputDirectory);
-
-// Генерация OpenAPI
-var openApiGenerator = new OpenApiGenerator();
-var json = await openApiGenerator.GenerateAsync(apiDescription);
-
-var openApiPath = Path.Combine(outputDirectory, "openapi.json");
-await File.WriteAllTextAsync(openApiPath, json);
-
-// Генерация Markdown
-var markdownGenerator = new MarkdownGenerator();
-
-var markdownPath = Path.Combine(outputDirectory, "API.md");
-markdownGenerator.Generate(apiDescription, markdownPath);
-
-Console.WriteLine($"OpenAPI: {openApiPath}");
-Console.WriteLine($"Markdown: {markdownPath}");
-
-return 0;
+dotnet run --project src/AutoDocs.Cli -- samples/DemoApi/DemoApi.csproj samples/DemoApi/docs/openapi.json
