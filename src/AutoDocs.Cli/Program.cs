@@ -62,4 +62,3 @@ catch (Exception ex)
 }
 
 
-dotnet run --project src/AutoDocs.Cli -- samples/DemoApi/DemoApi.csproj samples/DemoApi/docs/openapi.json

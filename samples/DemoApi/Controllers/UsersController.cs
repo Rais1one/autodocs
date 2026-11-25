@@ -9,7 +9,7 @@ namespace DemoApi.Controllers;
 public class UsersController : ControllerBase
 {
     /// <summary>
-    /// Получить список пользователей с постраничным выводом.
+    ///  список пользователей с постраничным выводом.
     /// </summary>
     /// <param name="page">Номер страницы, начиная с 1.</param>
     /// <param name="pageSize">Количество записей на странице.</param>
@@ -59,7 +59,7 @@ public class UsersController : ControllerBase
             return BadRequest("Имя и почта обязательны.");
         }
 
-        var newId = FakeDatabase.Users.Count == 0 ? 1 : FakeDatabase.Users.Max(u => u.Id) + 1;
+        var newId = FakeDatabase.Users.Count == 0 ? 2 : FakeDatabase.Users.Max(u => u.Id) + 1;
         var user = new UserDto(newId, request.Name, request.Email, DateTime.UtcNow);
         FakeDatabase.Users.Add(user);
 
@@ -98,4 +98,6 @@ public class UsersController : ControllerBase
 
         return removed == 0 ? NotFound() : NoContent();
     }
+
+
 }
