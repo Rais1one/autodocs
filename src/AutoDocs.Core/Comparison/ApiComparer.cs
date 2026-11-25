@@ -70,9 +70,20 @@ public class ApiComparer
         }
 
         return differences
-            .OrderBy(d => d.EndpointKey)
-            .ThenBy(d => d.Kind)
-            .ToList();
+    .Select(difference =>
+    {
+        var endpoint = current.Endpoints.FirstOrDefault(
+            e => e.Key == difference.EndpointKey);
+
+        return difference with
+        {
+            FilePath = endpoint?.FilePath,
+            Line = endpoint?.Line
+        };
+    })
+    .OrderBy(d => d.EndpointKey)
+    .ThenBy(d => d.Kind)
+    .ToList();
     }
 
     private static string GetEndpointKey(Endpoint endpoint)

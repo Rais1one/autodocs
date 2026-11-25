@@ -335,6 +335,11 @@ namespace AutoDocs.Core.Analysis
                                 $"обязательный: {isRequired}");
                         }
 
+                        var location = method.Identifier.GetLocation().GetLineSpan();
+
+                        var filePath = location.Path;
+                        var line = location.StartLinePosition.Line + 1;
+
                         endpoints.Add(new Endpoint(
                             verbs.Value,
                             fullRoute,
@@ -342,7 +347,9 @@ namespace AutoDocs.Core.Analysis
                             parameters,
                             responses,
                             summary,
-                            returns
+                            returns,
+                            filePath,
+                            line
                         ));
 
                     }

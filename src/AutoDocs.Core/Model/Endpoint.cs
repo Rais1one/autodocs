@@ -7,5 +7,7 @@ public record Endpoint(
     IReadOnlyList<Parameter> Parameters,
     IReadOnlyList<ApiResponse> Responses,
     string? Summary = null,
-    string? Returns = null
+    string? Returns = null,
+    string? FilePath = null,
+    int? Line = null
 );

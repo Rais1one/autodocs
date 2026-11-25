@@ -39,6 +39,12 @@ try
             $"{difference.EndpointKey}: " +
             $"{difference.Message}");
 
+        if (difference.FilePath is not null)
+        {
+            Console.WriteLine(
+                $"  Файл: {difference.FilePath}:{difference.Line}");
+        }
+
         if (difference.OldValue is not null)
             Console.WriteLine($"  Было: {difference.OldValue}");
 
