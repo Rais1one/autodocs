@@ -51,7 +51,7 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
-    /// Создать нового пользователя.
+    /// Создать нового пользовате
     /// </summary>
     /// <param name="request">Данные нового пользователя.</param>
     /// <returns>Созданный пользователь.</returns>
