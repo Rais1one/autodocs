@@ -16,6 +16,7 @@
   <ItemGroup>
     <ProjectReference Include="..\AutoDocs.Core\AutoDocs.Core.csproj" />
     <ProjectReference Include="..\AutoDocs.Application\AutoDocs.Application.csproj" />
+    <ProjectReference Include="..\AutoDocs.Storage\AutoDocs.Storage.csproj" />
   </ItemGroup>
 
 </Project>

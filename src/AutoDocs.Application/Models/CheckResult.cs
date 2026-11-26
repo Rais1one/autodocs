@@ -11,6 +11,8 @@ public record CheckResult(
     TimeSpan Duration
 )
 {
+    public string? HistoryWarning { get; init; }
+
     public bool IsUpToDate => Discrepancies.Count == 0;
 
     public int ErrorCount => Discrepancies.Count(

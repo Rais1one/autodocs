@@ -67,7 +67,7 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
-    /// Обновить данные пользователя.
+    /// Обновить данные пользователя. [f[f[f
     /// </summary>
     /// <param name="id">Идентификатор пользователя.</param>
     /// <param name="request">Новые данные пользователя.</param>

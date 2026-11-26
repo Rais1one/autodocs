@@ -4,6 +4,9 @@ using AutoDocs.Cli.Settings;
 using AutoDocs.Core.Analysis;
 using AutoDocs.Core.Comparison;
 using Spectre.Console.Cli;
+using AutoDocs.Storage.Data;
+using AutoDocs.Storage.Repositories;
+
 
 namespace AutoDocs.Cli.Commands;
 
@@ -24,10 +27,18 @@ public class CheckCommand : AsyncCommand<CheckSettings>
                 return 2;
             }
 
+            var historyService = settings.NoHistory
+                ? null
+                : new HistoryService(
+                    new HistoryRepository(
+                    new AutoDocsDbContextFactory()));
+
             var service = new CheckService(
                 new ProjectAnalyzer(),
                 new OpenApiReader(),
-                new ApiComparer());
+                new ApiComparer(),
+                historyService);
+
 
             var request = new CheckRequest(
                 settings.ProjectPath,
@@ -69,6 +80,17 @@ public class CheckCommand : AsyncCommand<CheckSettings>
             Console.WriteLine(result.IsUpToDate
                 ? "Документация актуальна."
                 : "Документация неактуальна.");
+
+            if (result.HistoryWarning is not null)
+            {
+                Console.Error.WriteLine(
+                    $"Предупреждение: {result.HistoryWarning}");
+            }
+            else if (!settings.NoHistory)
+            {
+                Console.WriteLine("Результат сохранён в историю.");
+            }
+
 
             return result.IsUpToDate ? 0 : 1;
         }

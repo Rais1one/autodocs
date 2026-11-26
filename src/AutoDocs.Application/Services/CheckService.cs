@@ -10,16 +10,20 @@ public class CheckService
     private readonly ProjectAnalyzer _analyzer;
     private readonly OpenApiReader _reader;
     private readonly ApiComparer _comparer;
+    private readonly HistoryService? _historyService;
 
     public CheckService(
-        ProjectAnalyzer analyzer,
-        OpenApiReader reader,
-        ApiComparer comparer)
+    ProjectAnalyzer analyzer,
+    OpenApiReader reader,
+    ApiComparer comparer,
+    HistoryService? historyService = null)
     {
         _analyzer = analyzer;
         _reader = reader;
         _comparer = comparer;
+        _historyService = historyService;
     }
+
 
     public async Task<CheckResult> CheckAsync(
         CheckRequest request)
@@ -67,13 +71,34 @@ public class CheckService
 
         stopwatch.Stop();
 
-        return new CheckResult(
+        var result = new CheckResult(
             current,
             documented,
             discrepancies.ToList(),
             projectPath,
             documentationPath,
             stopwatch.Elapsed);
+
+        if (request.SaveHistory && _historyService is not null)
+        {
+            try
+            {
+                await _historyService.SaveCheckAsync(
+                    result,
+                    request.Source);
+            }
+            catch (Exception ex)
+            {
+                result = result with
+                {
+                    HistoryWarning =
+                        $"Не удалось сохранить историю: {ex.Message}"
+                };
+            }
+        }
+
+        return result;
+
     }
 }
 

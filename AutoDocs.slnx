@@ -6,5 +6,7 @@
     <Project Path="src/AutoDocs.Application/AutoDocs.Application.csproj" />
     <Project Path="src/AutoDocs.Cli/AutoDocs.Cli.csproj" />
     <Project Path="src/AutoDocs.Core/AutoDocs.Core.csproj" />
+    <Project Path="src/AutoDocs.Desktop/AutoDocs.Desktop.csproj" />
+    <Project Path="src/AutoDocs.Storage/AutoDocs.Storage.csproj" />
   </Folder>
 </Solution>
