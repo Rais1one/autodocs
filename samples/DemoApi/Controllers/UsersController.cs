@@ -9,7 +9,7 @@ namespace DemoApi.Controllers;
 public class UsersController : ControllerBase
 {
     /// <summary>
-    ///  список пользователей с постраничным выводом.
+    ///  Получить список пользователей с постраничным выводом.
     /// </summary>
     /// <param name="page">Номер страницы, начиная с 1.</param>
     /// <param name="pageSize">Количество записей на странице.</param>
@@ -23,6 +23,12 @@ public class UsersController : ControllerBase
 
         return Ok(result);
     }
+
+
+    
+
+
+
 
     /// <summary>
     /// Получить пользователя по идентификатору.
@@ -67,7 +73,7 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
-    /// Обновить данные пользователя. [f[f[f
+    /// Обновить данные пользователя.
     /// </summary>
     /// <param name="id">Идентификатор пользователя.</param>
     /// <param name="request">Новые данные пользователя.</param>
@@ -98,6 +104,8 @@ public class UsersController : ControllerBase
 
         return removed == 0 ? NotFound() : NoContent();
     }
+
+    
 
 
 }

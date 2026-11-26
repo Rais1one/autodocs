@@ -1,5 +1,4 @@
-
-using AutoDocs.Core.Analysis;
+﻿using AutoDocs.Core.Analysis;
 using AutoDocs.Core.Model;
 using Xunit;
 
@@ -26,8 +25,7 @@ public class ProjectAnalyzerTests
             directory = Directory.GetParent(directory)?.FullName;
         }
 
-        throw new FileNotFoundException(
-            "Не удалось найти DemoApi.csproj");
+        throw new FileNotFoundException("DemoApi.csproj not found");
     }
 
     private static async Task<ApiDescription> AnalyzeDemoApi()
@@ -51,7 +49,7 @@ public class ProjectAnalyzerTests
 
         var endpoint = Assert.Single(
             api.Endpoints,
-            e => e.Key == "GET api/Orders/{id:int}"
+            e => e.Key == "GET /api/Orders/{id}"
         );
 
         var parameter = Assert.Single(
@@ -70,7 +68,7 @@ public class ProjectAnalyzerTests
 
         var endpoint = Assert.Single(
             api.Endpoints,
-            e => e.Key == "GET api/Orders/{id:int}"
+            e => e.Key == "GET /api/Orders/{id}"
         );
 
         Assert.Contains(
@@ -91,7 +89,7 @@ public class ProjectAnalyzerTests
 
         var endpoint = Assert.Single(
             api.Endpoints,
-            e => e.Key == "GET api/Orders"
+            e => e.Key == "GET /api/Orders"
         );
 
         Assert.Contains(
@@ -100,4 +98,67 @@ public class ProjectAnalyzerTests
                  r.TypeName == "IEnumerable<OrderDto>"
         );
     }
+
+    [Fact]
+    public async Task Analyzer_ShouldRejectDuplicateEndpoints()
+    {
+        var directory = Path.Combine(
+            Path.GetTempPath(),
+            $"AutoDocs.Tests-{Guid.NewGuid()}");
+
+        Directory.CreateDirectory(directory);
+
+        try
+        {
+            var projectPath = Path.Combine(
+                directory, "DuplicateApi.csproj");
+
+            await File.WriteAllTextAsync(projectPath, """
+                <Project Sdk="Microsoft.NET.Sdk.Web">
+                    <PropertyGroup>
+                        <TargetFramework>net10.0</TargetFramework>
+                        <OutputType>Library</OutputType>
+                    </PropertyGroup>
+                </Project>
+                """);
+
+            await File.WriteAllTextAsync(
+                Path.Combine(directory, "UsersController.cs"),
+                """
+                using Microsoft.AspNetCore.Mvc;
+
+                [ApiController]
+                [Route("api/[controller]")]
+                public class UsersController : ControllerBase
+                {
+                    [HttpGet]
+                    public IActionResult GetUsers()
+                    {
+                        return Ok();
+                    }
+
+                    [HttpGet]
+                    public IActionResult GetDuplicateUsers()
+                    {
+                        return Ok();
+                    }
+                }
+                """);
+
+            var analyzer = new ProjectAnalyzer();
+
+            var exception =
+                await Assert.ThrowsAsync<InvalidOperationException>(
+                    () => analyzer.AnalyzeAsync(projectPath));
+
+            Assert.Contains("api/Users", exception.Message);
+            Assert.Contains("UsersController.cs", exception.Message);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
 }
+
+

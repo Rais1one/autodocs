@@ -1,0 +1,215 @@
+<UserControl x:Class="AutoDocs.Desktop.Views.HomeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+
+        <StackPanel MaxWidth="1050">
+
+            <Border HorizontalAlignment="Left"
+                    CornerRadius="8"
+                    Padding="11,7"
+                    Margin="0,0,0,25">
+
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Background"
+                                Value="{StaticResource StatBrush}"/>
+
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasProject}"
+                                         Value="True">
+                                <Setter Property="Background"
+                                        Value="{StaticResource SuccessBackgroundBrush}"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+
+                <TextBlock FontSize="12">
+
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Text"
+                                    Value="● Проект не выбран"/>
+                            <Setter Property="Foreground"
+                                    Value="{StaticResource MutedTextBrush}"/>
+
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasProject}"
+                                             Value="True">
+                                    <Setter Property="Text"
+                                            Value="● Проект готов к анализу"/>
+                                    <Setter Property="Foreground"
+                                            Value="{StaticResource SuccessBrush}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+
+                </TextBlock>
+
+            </Border>
+
+            <TextBlock Text="Главная"
+                       Style="{StaticResource PageTitleStyle}"/>
+
+            <TextBlock Text="Выберите проект ASP.NET Core и запустите нужное действие. Остальные пути программа подставит автоматически."
+                       Foreground="{StaticResource DescriptionBrush}"
+                       TextWrapping="Wrap"/>
+
+            <Border Style="{StaticResource CardStyle}">
+
+                <StackPanel>
+
+                    <TextBlock Text="Текущий проект"
+                               Style="{StaticResource CardTitleStyle}"/>
+
+                    <Grid>
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel Margin="0,0,16,0">
+
+                            <TextBlock Text="{Binding ProjectName}"
+                                       FontSize="19"
+                                       FontWeight="SemiBold"/>
+
+                            <TextBlock Text="{Binding ProjectPath}"
+                                       Style="{StaticResource MutedTextStyle}"
+                                       Margin="0,6,0,0"/>
+
+                        </StackPanel>
+
+                        <Button Grid.Column="1"
+                                Content="Выбрать проект"
+                                Command="{Binding SelectProjectCommand}"
+                                VerticalAlignment="Center"/>
+
+                    </Grid>
+
+                    <Grid Margin="0,24,0,0">
+
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="14"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+
+                        <Button Grid.Column="0"
+                                Style="{StaticResource PrimaryButtonStyle}"
+                                Command="{Binding GenerateCommand}"
+                                Padding="20,24"
+                                FontSize="16">
+
+                            <TextBlock Text="✦  Сформировать документацию"
+                                       TextWrapping="Wrap"
+                                       TextAlignment="Center"/>
+
+                        </Button>
+
+                        <Button Grid.Column="2"
+                                Command="{Binding CheckCommand}"
+                                Padding="20,24"
+                                FontSize="16">
+
+                            <TextBlock Text="✓  Проверить актуальность"
+                                       TextWrapping="Wrap"
+                                       TextAlignment="Center"/>
+
+                        </Button>
+
+                    </Grid>
+
+                </StackPanel>
+
+            </Border>
+
+            <UniformGrid Columns="3"
+                         Margin="0,22,0,0">
+
+                <Border Style="{StaticResource StatCardStyle}"
+                        Margin="0,0,15,0">
+
+                    <StackPanel>
+
+                        <TextBlock Text="Эндпоинты"
+                                   Style="{StaticResource MutedTextStyle}"/>
+
+                        <TextBlock Text="{Binding EndpointCount}"
+                                   FontSize="26"
+                                   FontWeight="Bold"
+                                   Margin="0,9"/>
+
+                        <TextBlock Text="Найдено в проекте"
+                                   Style="{StaticResource MutedTextStyle}"/>
+
+                    </StackPanel>
+
+                </Border>
+
+                <Border Style="{StaticResource StatCardStyle}"
+                        Margin="0,0,15,0">
+
+                    <StackPanel>
+
+                        <TextBlock Text="Последняя проверка"
+                                   Style="{StaticResource MutedTextStyle}"/>
+
+                        <TextBlock Text="{Binding CheckStatus}"
+                                   FontSize="17"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap"
+                                   Margin="0,9"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="{StaticResource MutedTextBrush}"/><Style.Triggers><DataTrigger Binding="{Binding CheckStatus}" Value="Документация актуальна"><Setter Property="Foreground" Value="{StaticResource SuccessBrush}"/></DataTrigger><DataTrigger Binding="{Binding CheckStatus}" Value="Обнаружены расхождения"><Setter Property="Foreground" Value="{StaticResource WarningBrush}"/></DataTrigger><DataTrigger Binding="{Binding CheckStatus}" Value="Ошибка проверки"><Setter Property="Foreground" Value="{StaticResource ErrorBrush}"/></DataTrigger><DataTrigger Binding="{Binding CheckStatus}" Value="Выполняется проверка"><Setter Property="Foreground" Value="{StaticResource AccentBrush}"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+
+                    </StackPanel>
+
+                </Border>
+
+                <Border Style="{StaticResource StatCardStyle}">
+
+                    <StackPanel>
+
+                        <TextBlock Text="Документация"
+                                   Style="{StaticResource MutedTextStyle}"/>
+
+                        <TextBlock Text="OpenAPI + MD"
+                                   FontSize="20"
+                                   FontWeight="Bold"
+                                   Margin="0,9"/>
+
+                        <TextBlock Text="Доступные форматы"
+                                   Style="{StaticResource MutedTextStyle}"/>
+
+                    </StackPanel>
+
+                </Border>
+
+            </UniformGrid>
+
+            <Border Style="{StaticResource CardStyle}">
+
+                <StackPanel>
+
+                    <TextBlock Text="Сформированные файлы"
+                               Style="{StaticResource CardTitleStyle}"/>
+
+                    <TextBlock Text="{Binding OpenApiPath, TargetNullValue=—}" Style="{StaticResource MutedTextStyle}"/>
+                    <Button Content="Открыть OpenAPI" Command="{Binding OpenGeneratedFileCommand}" CommandParameter="{Binding OpenApiPath}" HorizontalAlignment="Left" Margin="0,8,0,12"/>
+                    <TextBlock Text="{Binding MarkdownPath}" Style="{StaticResource MutedTextStyle}"/>
+                    <Button Content="Открыть Markdown" Command="{Binding OpenGeneratedFileCommand}" CommandParameter="{Binding MarkdownPath}" HorizontalAlignment="Left" Margin="0,8,0,0"/>
+                </StackPanel>
+
+            </Border>
+
+        </StackPanel>
+
+    </ScrollViewer>
+
+</UserControl>
+
+
+

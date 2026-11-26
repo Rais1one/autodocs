@@ -358,6 +358,24 @@ namespace AutoDocs.Core.Analysis
             }
 
             Console.WriteLine($"Всего эндпоинтов: {endpoints.Count}");
+            var duplicate = endpoints
+                .GroupBy(endpoint => endpoint.Key)
+                .FirstOrDefault(group => group.Count() > 1);
+
+            if (duplicate is not null)
+            {
+                var locations = string.Join(
+                    Environment.NewLine,
+                    duplicate.Select(endpoint =>
+                        $"{endpoint.FilePath}:{endpoint.Line}"));
+
+                throw new InvalidOperationException(
+                    $"Обнаружены эндпоинты с одинаковым ключом: {duplicate.Key}." +
+                    Environment.NewLine +
+                    locations);
+            }
+
+
 
             return new ApiDescription(
                 project.Name,

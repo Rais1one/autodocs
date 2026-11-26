@@ -143,10 +143,11 @@ public class OpenApiReader
         }
 
         return new ApiDescription(
-            document.Info.Title,
-            document.Info.Version,
+            document.Info?.Title ?? "Unknown API",
+            document.Info?.Version ?? "1.0.0",
             endpoints
-        );
+            );
+
     }
 
     private static string ReadSchema(IOpenApiSchema? schema)

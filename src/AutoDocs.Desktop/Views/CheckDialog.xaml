@@ -1,0 +1,83 @@
+<Window x:Class="AutoDocs.Desktop.Views.CheckDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Проверить актуальность"
+        Width="560"
+        SizeToContent="Height"
+        ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        Background="{StaticResource DialogBrush}"
+        Foreground="{StaticResource TextBrush}"
+        FontFamily="Segoe UI">
+
+    <StackPanel Margin="26">
+
+        <TextBlock
+            Text="Проверить актуальность"
+            Style="{StaticResource CardTitleStyle}"/>
+
+        <TextBlock
+            Text="AutoDocs автоматически ищет документацию в папке docs."
+            Style="{StaticResource MutedTextStyle}"/>
+
+        <TextBlock
+            Text="Файл документации OpenAPI"
+            FontWeight="SemiBold"
+            Margin="0,24,0,8"/>
+
+        <DockPanel>
+
+            <Button
+                DockPanel.Dock="Right"
+                Content="Обзор"
+                Click="Browse_Click"
+                Margin="8,0,0,0"/>
+
+            <TextBox
+                x:Name="DocumentationBox"
+                VerticalContentAlignment="Center"/>
+
+        </DockPanel>
+
+        <TextBlock
+            Text="Если файл не найден, укажите другой путь."
+            Style="{StaticResource MutedTextStyle}"
+            Margin="0,8,0,0"/>
+
+        <CheckBox
+            x:Name="SaveHistoryBox"
+            Content="Сохранить результат в историю"
+            IsChecked="True"
+            Foreground="{StaticResource TextBrush}"
+            Margin="0,20,0,0"/>
+
+        <TextBlock
+            x:Name="ErrorText"
+            Foreground="{StaticResource ErrorBrush}"
+            TextWrapping="Wrap"
+            Margin="0,12,0,0"/>
+
+        <StackPanel
+            Orientation="Horizontal"
+            HorizontalAlignment="Right"
+            Margin="0,16,0,0">
+
+            <Button
+                Content="Отмена"
+                IsCancel="True"
+                Margin="0,0,10,0"/>
+
+            <Button
+                Content="Проверить"
+                IsDefault="True"
+                Style="{StaticResource PrimaryButtonStyle}"
+                Click="Confirm_Click"/>
+
+        </StackPanel>
+
+    </StackPanel>
+
+</Window>
+
+

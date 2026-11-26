@@ -1,0 +1,528 @@
+<UserControl x:Class="AutoDocs.Desktop.Views.ResultsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <Grid MaxWidth="1200">
+
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0">
+
+            <TextBlock Text="Результаты проверки"
+                       Style="{StaticResource PageTitleStyle}"/>
+
+            <Border Background="{StaticResource WarningBackgroundBrush}"
+                    CornerRadius="8"
+                    Padding="12,8"
+                    HorizontalAlignment="Left"
+                    Margin="0,0,0,12">
+
+                <Border.Style>
+                    <Style TargetType="Border">
+                        <Setter Property="Visibility"
+                                Value="Collapsed"/>
+
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding IsHistoricalResult}"
+                                         Value="True">
+                                <Setter Property="Visibility"
+                                        Value="Visible"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Border.Style>
+
+                <TextBlock Text="Архивный результат проверки"
+                           Foreground="{StaticResource WarningBrush}"
+                           FontSize="12"/>
+
+            </Border>
+
+            <TextBlock Text="Сравнение исходного кода проекта с сохранённой документацией."
+                       Foreground="{StaticResource DescriptionBrush}"
+                       TextWrapping="Wrap"/>
+
+            <Border Style="{StaticResource CardStyle}">
+
+                <Grid>
+
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <StackPanel>
+
+                        <TextBlock Text="{Binding CheckStatus}"
+                                   FontSize="20"
+                                   FontWeight="SemiBold"><TextBlock.Style><Style TargetType="TextBlock"><Setter Property="Foreground" Value="{StaticResource MutedTextBrush}"/><Style.Triggers><DataTrigger Binding="{Binding CheckStatus}" Value="Документация актуальна"><Setter Property="Foreground" Value="{StaticResource SuccessBrush}"/></DataTrigger><DataTrigger Binding="{Binding CheckStatus}" Value="Обнаружены расхождения"><Setter Property="Foreground" Value="{StaticResource WarningBrush}"/></DataTrigger><DataTrigger Binding="{Binding CheckStatus}" Value="Ошибка проверки"><Setter Property="Foreground" Value="{StaticResource ErrorBrush}"/></DataTrigger><DataTrigger Binding="{Binding CheckStatus}" Value="Выполняется проверка"><Setter Property="Foreground" Value="{StaticResource AccentBrush}"/></DataTrigger></Style.Triggers></Style></TextBlock.Style></TextBlock>
+
+                        <TextBlock Text="{Binding ProjectName}"
+                                   Style="{StaticResource MutedTextStyle}"
+                                   Margin="0,8,0,0"/>
+
+                        <TextBlock Text="{Binding DocumentationPath}"
+                                   Style="{StaticResource MutedTextStyle}"
+                                   Margin="0,6,0,0"/>
+
+                    </StackPanel>
+
+                    <Button Grid.Column="1"
+                            Content="Повторить проверку"
+                            Style="{StaticResource PrimaryButtonStyle}"
+                            Command="{Binding CheckCommand}"
+                            VerticalAlignment="Center"
+                            Margin="15,0,0,0"/>
+
+                </Grid>
+
+            </Border>
+
+            <UniformGrid Columns="4"
+                         Margin="0,18,0,0">
+<UniformGrid.Style><Style TargetType="UniformGrid"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding HasCheckResult}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></UniformGrid.Style>
+
+                <Border Style="{StaticResource StatCardStyle}"
+                        Margin="0,0,10,0">
+
+                    <StackPanel>
+
+                        <TextBlock Text="Ошибки"
+                                   Style="{StaticResource MutedTextStyle}"/>
+
+                        <TextBlock Text="{Binding ErrorCount}"
+                                   Foreground="{StaticResource ErrorBrush}"
+                                   FontSize="26"
+                                   FontWeight="Bold"
+                                   Margin="0,8,0,0"/>
+
+                    </StackPanel>
+
+                </Border>
+
+                <Border Style="{StaticResource StatCardStyle}"
+                        Margin="0,0,10,0">
+
+                    <StackPanel>
+
+                        <TextBlock Text="Предупреждения"
+                                   Style="{StaticResource MutedTextStyle}"/>
+
+                        <TextBlock Text="{Binding WarningCount}"
+                                   Foreground="{StaticResource WarningBrush}"
+                                   FontSize="26"
+                                   FontWeight="Bold"
+                                   Margin="0,8,0,0"/>
+
+                    </StackPanel>
+
+                </Border>
+
+                <Border Style="{StaticResource StatCardStyle}"
+                        Margin="0,0,10,0">
+
+                    <StackPanel>
+
+                        <TextBlock Text="Информация"
+                                   Style="{StaticResource MutedTextStyle}"/>
+
+                        <TextBlock Text="{Binding InfoCount}"
+                                   Foreground="{StaticResource AccentBrush}"
+                                   FontSize="26"
+                                   FontWeight="Bold"
+                                   Margin="0,8,0,0"/>
+
+                    </StackPanel>
+
+                </Border>
+
+                <Border Style="{StaticResource StatCardStyle}">
+
+                    <StackPanel>
+
+                        <TextBlock Text="Эндпоинты"
+                                   Style="{StaticResource MutedTextStyle}"/>
+
+                        <TextBlock Text="{Binding EndpointCount}"
+                                   FontSize="26"
+                                   FontWeight="Bold"
+                                   Margin="0,8,0,0"/>
+
+                    </StackPanel>
+
+                </Border>
+
+            </UniformGrid>
+
+        </StackPanel>
+
+        <Border Grid.Row="1"
+                Padding="18">
+<Border.Style><Style TargetType="Border" BasedOn="{StaticResource CardStyle}"><Setter Property="Visibility" Value="Collapsed"/><Style.Triggers><DataTrigger Binding="{Binding HasCheckResult}" Value="True"><Setter Property="Visibility" Value="Visible"/></DataTrigger></Style.Triggers></Style></Border.Style>
+
+            <Grid>
+
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="*"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Заголовок и фильтрация -->
+
+                <DockPanel Grid.Row="0"
+                           Margin="0,0,0,16">
+
+                    <ComboBox DockPanel.Dock="Right"
+                              ItemsSource="{Binding SeverityFilters}"
+                              SelectedItem="{Binding SelectedSeverityFilter,
+                                                     Mode=TwoWay}"
+                              Width="170"
+                              Padding="8"
+                              FontSize="13"
+                              VerticalAlignment="Center"/>
+
+                    <StackPanel>
+
+                        <TextBlock Text="Список расхождений"
+                                   FontSize="20"
+                                   FontWeight="SemiBold"/>
+
+                        <TextBlock Text="{Binding FilteredCount,
+                                    StringFormat=Показано: {0}}"
+                                   Style="{StaticResource MutedTextStyle}"
+                                   Margin="0,5,0,0"/>
+
+                    </StackPanel>
+
+                </DockPanel>
+
+                <!-- Таблица -->
+
+                <DataGrid Grid.Row="1"
+                          ItemsSource="{Binding FilteredDiscrepancies}"
+                          SelectedItem="{Binding SelectedDiscrepancy,
+                                                 Mode=TwoWay}"
+                          AutoGenerateColumns="False"
+                          IsReadOnly="True"
+                          CanUserAddRows="False"
+                          CanUserDeleteRows="False"
+                          SelectionMode="Single"
+                          HeadersVisibility="Column"
+                          Background="{StaticResource CardBrush}"
+                          Foreground="{StaticResource TextBrush}"
+                          RowBackground="{StaticResource CardBrush}"
+                          AlternatingRowBackground="{StaticResource StatBrush}"
+                          GridLinesVisibility="Horizontal"
+                          HorizontalGridLinesBrush="{StaticResource BorderBrush}"
+                          BorderThickness="0"
+                          RowHeight="46"
+                          ColumnHeaderHeight="42">
+<DataGrid.Style><Style TargetType="DataGrid"><Style.Triggers><DataTrigger Binding="{Binding FilteredCount}" Value="0"><Setter Property="Visibility" Value="Collapsed"/></DataTrigger></Style.Triggers></Style></DataGrid.Style>
+
+                    <DataGrid.ColumnHeaderStyle>
+
+                        <Style TargetType="DataGridColumnHeader">
+
+                            <Setter Property="Background"
+                                    Value="{StaticResource StatBrush}"/>
+
+                            <Setter Property="Foreground"
+                                    Value="{StaticResource MutedTextBrush}"/>
+
+                            <Setter Property="Padding"
+                                    Value="8,10"/>
+
+                            <Setter Property="BorderThickness"
+                                    Value="0,0,0,1"/>
+
+                            <Setter Property="BorderBrush"
+                                    Value="{StaticResource BorderBrush}"/>
+
+                        </Style>
+
+                    </DataGrid.ColumnHeaderStyle>
+
+                    <DataGrid.CellStyle>
+
+                        <Style TargetType="DataGridCell">
+
+                            <Setter Property="Foreground"
+                                    Value="{StaticResource TextBrush}"/>
+
+                            <Setter Property="Background"
+                                    Value="Transparent"/>
+
+                            <Setter Property="BorderThickness"
+                                    Value="0"/>
+
+                            <Style.Triggers>
+
+                                <Trigger Property="IsSelected"
+                                         Value="True">
+
+                                    <Setter Property="Background"
+                                            Value="{StaticResource NavigationActiveBrush}"/>
+
+                                    <Setter Property="Foreground"
+                                            Value="White"/>
+
+                                </Trigger>
+
+                            </Style.Triggers>
+
+                        </Style>
+
+                    </DataGrid.CellStyle>
+
+                    <DataGrid.Columns>
+
+                        <DataGridTemplateColumn Header="Уровень"
+                                                Width="110">
+
+                            <DataGridTemplateColumn.CellTemplate>
+
+                                <DataTemplate>
+
+                                    <Border CornerRadius="7"
+                                            Padding="8,5"
+                                            HorizontalAlignment="Left"
+                                            VerticalAlignment="Center"
+                                            Margin="5,0">
+
+                                        <Border.Style>
+
+                                            <Style TargetType="Border">
+
+                                                <Setter Property="Background"
+                                                        Value="{StaticResource NavigationActiveBrush}"/>
+
+                                                <Style.Triggers>
+
+                                                    <DataTrigger Binding="{Binding Severity}"
+                                                                 Value="Error">
+
+                                                        <Setter Property="Background"
+                                                                Value="{StaticResource ErrorBackgroundBrush}"/>
+
+                                                    </DataTrigger>
+
+                                                    <DataTrigger Binding="{Binding Severity}"
+                                                                 Value="Warning">
+
+                                                        <Setter Property="Background"
+                                                                Value="{StaticResource WarningBackgroundBrush}"/>
+
+                                                    </DataTrigger>
+
+                                                </Style.Triggers>
+
+                                            </Style>
+
+                                        </Border.Style>
+
+                                        <TextBlock FontSize="12">
+
+                                            <TextBlock.Style>
+
+                                                <Style TargetType="TextBlock">
+
+                                                    <Setter Property="Text"
+                                                            Value="Информация"/>
+
+                                                    <Setter Property="Foreground"
+                                                            Value="{StaticResource TextBrush}"/>
+
+                                                    <Style.Triggers>
+
+                                                        <DataTrigger Binding="{Binding Severity}"
+                                                                     Value="Error">
+
+                                                            <Setter Property="Text"
+                                                                    Value="Ошибка"/>
+
+                                                            <Setter Property="Foreground"
+                                                                    Value="{StaticResource ErrorBrush}"/>
+
+                                                        </DataTrigger>
+
+                                                        <DataTrigger Binding="{Binding Severity}"
+                                                                     Value="Warning">
+
+                                                            <Setter Property="Text"
+                                                                    Value="Предупр."/>
+
+                                                            <Setter Property="Foreground"
+                                                                    Value="{StaticResource WarningBrush}"/>
+
+                                                        </DataTrigger>
+
+                                                    </Style.Triggers>
+
+                                                </Style>
+
+                                            </TextBlock.Style>
+
+                                        </TextBlock>
+
+                                    </Border>
+
+                                </DataTemplate>
+
+                            </DataGridTemplateColumn.CellTemplate>
+
+                        </DataGridTemplateColumn>
+
+                        <DataGridTextColumn Header="Эндпоинт"
+                                            Binding="{Binding EndpointKey}"
+                                            Width="180"/>
+
+                        <DataGridTextColumn Header="Описание"
+                                            Binding="{Binding Message}"
+                                            Width="*"/>
+
+                        <DataGridTextColumn Header="Строка"
+                                            Binding="{Binding Line}"
+                                            Width="70"/>
+
+                    </DataGrid.Columns>
+
+                </DataGrid>
+
+                <TextBlock Grid.Row="1" TextWrapping="Wrap" HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <TextBlock.Style><Style TargetType="TextBlock" BasedOn="{StaticResource MutedTextStyle}">
+                        <Setter Property="Visibility" Value="Collapsed"/>
+                        <Setter Property="Text" Value="Нет расхождений по выбранному фильтру."/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding FilteredCount}" Value="0"><Setter Property="Visibility" Value="Visible"/></DataTrigger>
+                            <DataTrigger Binding="{Binding Discrepancies.Count}" Value="0"><Setter Property="Text" Value="Расхождений не обнаружено. Документация актуальна."/><Setter Property="Foreground" Value="{StaticResource SuccessBrush}"/></DataTrigger>
+                        </Style.Triggers>
+                    </Style></TextBlock.Style>
+                </TextBlock>
+                <!-- Подробности расхождения -->
+
+                <Border Grid.Row="2"
+                        Background="{StaticResource StatBrush}"
+                        CornerRadius="10"
+                        Padding="16"
+                        Margin="0,16,0,0">
+
+                    <Border.Style>
+
+                        <Style TargetType="Border">
+
+                            <Setter Property="Visibility"
+                                    Value="Visible"/>
+
+                            <Style.Triggers>
+
+                                <DataTrigger Binding="{Binding SelectedDiscrepancy}"
+                                             Value="{x:Null}">
+
+                                    <Setter Property="Visibility"
+                                            Value="Collapsed"/>
+
+                                </DataTrigger>
+
+                            </Style.Triggers>
+
+                        </Style>
+
+                    </Border.Style>
+
+                    <StackPanel>
+
+                        <TextBlock Text="Подробности расхождения"
+                                   FontSize="16"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,10"/>
+
+                        <TextBlock Text="{Binding SelectedDiscrepancy.Kind}"
+                                   Style="{StaticResource MutedTextStyle}"/>
+
+                        <TextBlock Text="{Binding SelectedDiscrepancy.Message}"
+                                   TextWrapping="Wrap"
+                                   Margin="0,6,0,12"/>
+
+                        <Grid>
+
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="12"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+
+                            <Border Grid.Column="0"
+                                    Background="{StaticResource ErrorBackgroundBrush}"
+                                    CornerRadius="8"
+                                    Padding="12">
+
+                                <StackPanel>
+
+                                    <TextBlock Text="В документации"
+                                               Foreground="{StaticResource ErrorBrush}"
+                                               FontWeight="SemiBold"/>
+
+                                    <TextBlock Text="{Binding SelectedDiscrepancy.OldValue,
+                                                      TargetNullValue=—}"
+                                               TextWrapping="Wrap"
+                                               Margin="0,8,0,0"/>
+
+                                </StackPanel>
+
+                            </Border>
+
+                            <Border Grid.Column="2"
+                                    Background="{StaticResource SuccessBackgroundBrush}"
+                                    CornerRadius="8"
+                                    Padding="12">
+
+                                <StackPanel>
+
+                                    <TextBlock Text="В исходном коде"
+                                               Foreground="{StaticResource SuccessBrush}"
+                                               FontWeight="SemiBold"/>
+
+                                    <TextBlock Text="{Binding SelectedDiscrepancy.NewValue,
+                                                      TargetNullValue=—}"
+                                               TextWrapping="Wrap"
+                                               Margin="0,8,0,0"/>
+
+                                </StackPanel>
+
+                            </Border>
+
+                        </Grid>
+
+                        <TextBlock Text="{Binding SelectedDiscrepancy.FilePath}"
+                                   Style="{StaticResource MutedTextStyle}"
+                                   Margin="0,12,0,0"/>
+
+                        <TextBlock Text="{Binding SelectedDiscrepancy.Line,
+                                    StringFormat=Строка: {0}}"
+                                   Style="{StaticResource MutedTextStyle}"
+                                   Margin="0,5,0,0"/>
+
+                        <Button Content="Открыть исходный файл"
+                                Command="{Binding OpenSourceFileCommand}"
+                                HorizontalAlignment="Right"
+                                Margin="0,12,0,0"/>
+
+                    </StackPanel>
+
+                </Border>
+
+            </Grid>
+
+        </Border>
+
+    </Grid>
+
+</UserControl>
+
+
+
+

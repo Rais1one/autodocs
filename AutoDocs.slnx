@@ -9,4 +9,7 @@
     <Project Path="src/AutoDocs.Desktop/AutoDocs.Desktop.csproj" />
     <Project Path="src/AutoDocs.Storage/AutoDocs.Storage.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AutoDocs.Tests/AutoDocs.Tests.csproj" />
+  </Folder>
 </Solution>
