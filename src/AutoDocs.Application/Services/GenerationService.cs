@@ -59,7 +59,7 @@ public class GenerationService
 
         var api = await _analyzer.AnalyzeAsync(projectPath);
 
-        Directory.CreateDirectory(outputDirectory);
+        using var output = new DocumentOutput(outputDirectory);
 
         string? openApiPath = null;
         string? markdownPath = null;
@@ -73,7 +73,7 @@ public class GenerationService
 
             var json = await _openApiGenerator.GenerateAsync(api);
 
-            await File.WriteAllTextAsync(openApiPath, json);
+            await File.WriteAllTextAsync(output.Stage("openapi.json"), json);
         }
 
         if (request.Format is GenerationFormat.Markdown
@@ -83,9 +83,10 @@ public class GenerationService
                 outputDirectory,
                 "API.md");
 
-            _markdownGenerator.Generate(api, markdownPath);
+            _markdownGenerator.Generate(api, output.Stage("API.md"));
         }
 
+        output.Commit();
         stopwatch.Stop();
 
         return new GenerationResult(

@@ -26,7 +26,7 @@ public static class TypeNormalizer
 
         var (type, format) = TypeMapper.Map(typeName);
 
-        // Примитивные типы
+        
         if (type != "object")
         {
             return string.IsNullOrEmpty(format)
@@ -34,7 +34,7 @@ public static class TypeNormalizer
                 : $"{type}:{format}";
         }
 
-        // Массивы
+        
         if (typeName.EndsWith("[]"))
         {
             var itemType = typeName[..^2];
@@ -42,7 +42,7 @@ public static class TypeNormalizer
             return $"array<{Normalize(itemType)}>";
         }
 
-        // Коллекции
+        
         foreach (var collection in CollectionTypes)
         {
             var prefix = collection + "<";
@@ -56,7 +56,7 @@ public static class TypeNormalizer
             }
         }
 
-        // Пользовательские типы
+        
         return typeName;
     }
 

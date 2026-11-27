@@ -1,10 +1,10 @@
-﻿
+﻿using System.Text.Json.Serialization;
+using Microsoft.OpenApi;
 
-namespace AutoDocs.Core.Model
+namespace AutoDocs.Core.Model;
+
+public record ApiResponse(int StatusCode, string? TypeName = null)
 {
-    public record ApiResponse
-    (
-        int StatusCode,
-        string? TypeName = null
-    );
+    [JsonIgnore]
+    public IOpenApiSchema? Schema { get; init; }
 }

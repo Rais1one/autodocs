@@ -1,461 +1,152 @@
 ﻿using AutoDocs.Core.Model;
 using AutoDocs.Core.Normalization;
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.MSBuild;
 
-namespace AutoDocs.Core.Analysis
+namespace AutoDocs.Core.Analysis;
+
+public class ProjectAnalyzer
 {
-    public class ProjectAnalyzer
+    public async Task<ApiDescription> AnalyzeAsync(string projectPath)
     {
-        public async Task<ApiDescription> AnalyzeAsync(string projectPath)
-        {
-            using var workspace = MSBuildWorkspace.Create();
-
-            Console.WriteLine($"Открываю проект: {projectPath}");
-            var project = await workspace.OpenProjectAsync(projectPath);
-
-            foreach (var diagnostic in workspace.Diagnostics)
-            {
-                Console.WriteLine($"[{diagnostic.Kind}] {diagnostic.Message}");
-            }
-
-            var compilation = await project.GetCompilationAsync();
-
-            if (compilation is null)
-            {
-                throw new InvalidOperationException(
-                    "Не удалось получить компиляцию проекта.");
-            }
-
-            Console.WriteLine(
-                $"Проект: {project.Name}, файлов: {project.Documents.Count()}");
-
-            Console.WriteLine();
-            Console.WriteLine("Найденные классы:");
-
-            var endpoints = new List<Endpoint>();
-
-            foreach (var document in project.Documents)
-            {
-                var root = await document.GetSyntaxRootAsync();
-
-                if (root is null)
-                    continue;
-
-                var semanticModel = await document.GetSemanticModelAsync();
-
-                if (semanticModel is null)
-                    continue;
-
-                var classes = root.DescendantNodes()
-                    .OfType<ClassDeclarationSyntax>();
-
-                var fileName = Path.GetFileName(document.FilePath);
-
-                foreach (var classNode in classes)
-                {
-                    if (!classNode.Identifier.Text.EndsWith(
-                            "Controller",
-                            StringComparison.OrdinalIgnoreCase)
-                        || classNode.Modifiers.Any(
-                            m => m.IsKind(SyntaxKind.AbstractKeyword)))
-                    {
-                        continue;
-                    }
-
-                    var line = classNode.GetLocation()
-                        .GetLineSpan().StartLinePosition.Line + 1;
-
-                    var methods = classNode.Members
-                        .OfType<MethodDeclarationSyntax>();
-
-                    string name = classNode.Identifier.Text;
-                    string? r = null;
-
-                    Console.WriteLine(
-                        $"  {name} ({fileName}:{line})");
-
-                    foreach (var attrList in classNode.AttributeLists)
-                    {
-                        foreach (var attr in attrList.Attributes)
-                        {
-                            if (attr.Name.ToString() is "Route" or "RouteAttribute")
-                            {
-                                var arg = attr.ArgumentList?
-                                    .Arguments.FirstOrDefault();
-
-                                if (arg?.Expression is LiteralExpressionSyntax literal)
-                                {
-                                    r = literal.Token.ValueText;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (r is not null)
-                            break;
-                    }
-
-                    foreach (var method in methods)
-                    {
-                        if (!method.Modifiers.Any(
-                                m => m.IsKind(SyntaxKind.PublicKeyword)))
-                        {
-                            continue;
-                        }
-
-                        Console.WriteLine(
-                            $"        |_ {method.Identifier.Text}");
-
-                        Console.WriteLine(
-                            $"Возвращаемый тип: {GetResponseType(method.ReturnType)}");
-
-                        HttpVerb? verbs = null;
-                        string? route = null;
-                        var responses = new List<ApiResponse>();
-
-                        foreach (var attributeList in method.AttributeLists)
-                        {
-                            foreach (var attribute in attributeList.Attributes)
-                            {
-                                HttpVerb? verb = attribute.Name.ToString() switch
-                                {
-                                    "HttpPost" or "HttpPostAttribute" => HttpVerb.Post,
-                                    "HttpGet" or "HttpGetAttribute" => HttpVerb.Get,
-                                    "HttpPut" or "HttpPutAttribute" => HttpVerb.Put,
-                                    "HttpDelete" or "HttpDeleteAttribute" => HttpVerb.Delete,
-                                    _ => null
-                                };
-
-                                if (verb is not null)
-                                {
-                                    verbs = verb;
-
-                                    var argument = attribute.ArgumentList?
-                                        .Arguments.FirstOrDefault();
-
-                                    if (argument?.Expression is LiteralExpressionSyntax literal)
-                                    {
-                                        route = literal.Token.ValueText;
-                                    }
-                                }
-
-                                if (attribute.Name.ToString() is
-                                    "ProducesResponseType" or
-                                    "ProducesResponseTypeAttribute")
-                                {
-                                    if (attribute.ArgumentList != null)
-                                    {
-                                        string responseType = "не указан";
-                                        int? statuscode = null;
-
-                                        var arr = attribute.ArgumentList;
-
-                                        foreach (var argument in arr.Arguments)
-                                        {
-                                            if (argument.Expression is TypeOfExpressionSyntax typeOfExpr)
-                                            {
-                                                responseType = typeOfExpr.Type.ToString();
-                                            }
-                                            else
-                                            {
-                                                var constant = semanticModel
-                                                    .GetConstantValue(argument.Expression);
-
-                                                if (constant.HasValue &&
-                                                    constant.Value is int statusCode)
-                                                {
-                                                    statuscode = statusCode;
-                                                }
-                                            }
-                                        }
-
-                                        if (responseType == "не указан" &&
-                                            statuscode is >= 200 and < 300 &&
-                                            statuscode != 204)
-                                        {
-                                            string methodResponseType =
-                                                GetResponseType(method.ReturnType);
-
-                                            if (methodResponseType != "IActionResult" &&
-                                                methodResponseType != "ActionResult" &&
-                                                methodResponseType != "void")
-                                            {
-                                                responseType = methodResponseType;
-                                            }
-                                        }
-
-                                        if (statuscode.HasValue)
-                                        {
-                                            responses.Add(new ApiResponse(
-                                                statuscode.Value,
-                                                responseType == "не указан"
-                                                    ? null
-                                                    : responseType
-                                            ));
-                                        }
-
-                                        Console.WriteLine(
-                                            $"Найден атрибут: {attribute.ArgumentList} " +
-                                            $"HTTP-статус: {statuscode} Тип: {responseType}");
-                                    }
-                                }
-                            }
-                        }
-
-                        if (responses.Count == 0)
-                        {
-                            string responseType =
-                                GetResponseType(method.ReturnType);
-
-                            if (responseType is not
-                                ("IActionResult" or "ActionResult" or "void"))
-                            {
-                                responses.Add(new ApiResponse(
-                                    200,
-                                    responseType
-                                ));
-                            }
-                        }
-
-                        if (verbs is null)
-                            continue;
-
-                        var methodSymbol = semanticModel.GetDeclaredSymbol(method);
-
-                        var documentation = XmlDocumentationReader.Read(methodSymbol);
-
-                        var summary = XmlDocumentationReader.GetSummary(documentation);
-                        var returns = XmlDocumentationReader.GetReturns(documentation);
-
-                        if (string.IsNullOrWhiteSpace(summary))
-                        {
-                            Console.WriteLine(
-                                $"Предупреждение: отсутствует XML-описание метода {method.Identifier.Text}");
-                        }
-
-
-                        string controllerName =
-                            name.Replace("Controller", "");
-
-                        string controllerRoute =
-                            (r ?? "api/[controller]")
-                            .Replace("[controller]", controllerName);
-
-                        string fullRoute = string.IsNullOrEmpty(route)
-                            ? controllerRoute
-                            : $"{controllerRoute.TrimEnd('/')}/{route.TrimStart('/')}";
-
-                        
-                        fullRoute = RouteNormalizer.Normalize(fullRoute);
-
-                        string key =
-                            $"{verbs.Value.ToString().ToUpperInvariant()} {fullRoute}";
-
-                        var parameters = new List<Parameter>();
-
-                        foreach (var parameter in method.ParameterList.Parameters)
-                        {
-                            string parameterName = parameter.Identifier.Text;
-                            string typeName = parameter.Type?.ToString() ?? "";
-
-                            if (IsServiceParameter(typeName))
-                            {
-                                continue;
-                            }
-
-                            ParameterSource? sources = null;
-
-                            foreach (var attributeList in parameter.AttributeLists)
-                            {
-                                foreach (var attribute in attributeList.Attributes)
-                                {
-                                    ParameterSource? source =
-                                        attribute.Name.ToString() switch
-                                        {
-                                            "FromHeader" or "FromHeaderAttribute"
-                                                => ParameterSource.Header,
-
-                                            "FromBody" or "FromBodyAttribute"
-                                                => ParameterSource.Body,
-
-                                            "FromRoute" or "FromRouteAttribute"
-                                                => ParameterSource.Route,
-
-                                            "FromQuery" or "FromQueryAttribute"
-                                                => ParameterSource.Query,
-
-                                            _ => null
-                                        };
-
-                                    if (source is not null)
-                                    {
-                                        sources = source;
-                                    }
-                                }
-                            }
-
-                            if (sources is null &&
-                                IsRouteParameter(fullRoute, parameterName))
-                            {
-                                sources = ParameterSource.Route;
-                            }
-
-                            if (sources is null && IsSimpleType(typeName))
-                            {
-                                sources = ParameterSource.Query;
-                            }
-
-                            if (sources is null)
-                            {
-                                sources = ParameterSource.Body;
-                            }
-
-                            bool isRequired =
-                                sources == ParameterSource.Route ||
-                                (!typeName.EndsWith("?") &&
-                                 parameter.Default is null);
-
-                            parameters.Add(new Parameter
-                                (
-                                    parameterName,
-                                    typeName,
-                                    sources.Value,
-                                    isRequired,
-                                    XmlDocumentationReader.GetParameter(documentation, parameterName)
-                                ));
-
-
-                            Console.WriteLine(
-                                $"            |_ {parameterName} " +
-                                $"тип: {typeName} " +
-                                $"источник: {sources} " +
-                                $"обязательный: {isRequired}");
-                        }
-
-                        var methodLocation = method.Identifier.GetLocation().GetLineSpan();
-                        var methodFilePath = methodLocation.Path;
-                        var methodLine = methodLocation.StartLinePosition.Line + 1;
-
-
-                        endpoints.Add(new Endpoint(
-                            verbs.Value,
-                            fullRoute,
-                            key,
-                            parameters,
-                            responses,
-                            summary,
-                            returns,
-                            methodFilePath,
-                            methodLine
-
-                        ));
-
-                    }
-                }
-            }
-
-            Console.WriteLine($"Всего эндпоинтов: {endpoints.Count}");
-            var duplicate = endpoints
-                .GroupBy(endpoint => endpoint.Key)
-                .FirstOrDefault(group => group.Count() > 1);
-
-            if (duplicate is not null)
-            {
-                var locations = string.Join(
-                    Environment.NewLine,
-                    duplicate.Select(endpoint =>
-                        $"{endpoint.FilePath}:{endpoint.Line}"));
-
-                throw new InvalidOperationException(
-                    $"Обнаружены эндпоинты с одинаковым ключом: {duplicate.Key}." +
-                    Environment.NewLine +
-                    locations);
-            }
-
-
-
-            return new ApiDescription(
-                project.Name,
-                "v1",
-                endpoints
-            );
-        }
-
-        private static bool IsRouteParameter(
-            string fullRoute,
-            string parameterName)
-        {
-            var segments = fullRoute.Split('/');
-
-            foreach (var segment in segments)
-            {
-                if (!segment.StartsWith('{') || !segment.EndsWith('}'))
-                    continue;
-
-                string content = segment.Trim('{', '}');
-                string name = content.Split(':')[0];
-
-                name = name.TrimEnd('?');
-
-                if (string.Equals(
-                    name,
-                    parameterName,
-                    StringComparison.OrdinalIgnoreCase))
-                {
-                    return true;
-                }
-            }
-
-            return false;
-        }
-
-        private static bool IsServiceParameter(string? typeName)
-        {
-            return typeName is "CancellationToken"
-                or "System.Threading.CancellationToken";
-        }
-
-        private static bool IsSimpleType(string? typeName)
-        {
-            if (string.IsNullOrWhiteSpace(typeName))
-                return false;
-
-            string type = typeName.TrimEnd('?');
-
-            return type is
-                "string" or "String" or "System.String" or
-                "int" or "Int32" or "System.Int32" or
-                "long" or "Int64" or "System.Int64" or
-                "short" or "Int16" or "System.Int16" or
-                "bool" or "Boolean" or "System.Boolean" or
-                "double" or "Double" or "System.Double" or
-                "float" or "Single" or "System.Single" or
-                "decimal" or "Decimal" or "System.Decimal" or
-                "Guid" or "System.Guid" or
-                "DateTime" or "System.DateTime" or
-                "DateOnly" or "System.DateOnly" or
-                "TimeOnly" or "System.TimeOnly";
-        }
-
-        private static string GetResponseType(TypeSyntax returnType)
-        {
-            if (returnType is GenericNameSyntax generic)
-            {
-                string name = generic.Identifier.Text;
-
-                if (name is "Task" or "ActionResult" or "ValueTask")
-                {
-                    TypeSyntax innerType =
-                        generic.TypeArgumentList.Arguments[0];
-
-                    return GetResponseType(innerType);
-                }
-            }
-
-            return returnType.ToString();
-        }
+        using var workspace = MSBuildWorkspace.Create();
+        var project = await workspace.OpenProjectAsync(projectPath);
+        var failures = workspace.Diagnostics.Where(d => d.Kind == WorkspaceDiagnosticKind.Failure);
+        if (failures.Any())
+            throw new InvalidOperationException(string.Join(Environment.NewLine, failures.Select(d => d.Message)));
+        return await AnalyzeAsync(project);
     }
+
+    public async Task<ApiDescription> AnalyzeAsync(Project project)
+    {
+        var compilation = await project.GetCompilationAsync()
+            ?? throw new InvalidOperationException("Не удалось получить компиляцию проекта.");
+        var errors = compilation.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error).ToArray();
+        if (errors.Length != 0)
+            throw new InvalidOperationException("Ошибки компиляции:" + Environment.NewLine +
+                string.Join(Environment.NewLine, errors.Select(d => d.ToString())));
+
+        var endpoints = new List<Endpoint>();
+        var schemas = new DtoSchemas();
+        var seen = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
+        foreach (var tree in compilation.SyntaxTrees)
+        {
+            var model = compilation.GetSemanticModel(tree);
+            var root = await tree.GetRootAsync();
+            foreach (var declaration in root.DescendantNodes().OfType<ClassDeclarationSyntax>())
+            {
+                var controller = model.GetDeclaredSymbol(declaration) as INamedTypeSymbol;
+                if (controller is null || controller.IsAbstract || controller.DeclaredAccessibility != Accessibility.Public ||
+                    !controller.Name.EndsWith("Controller", StringComparison.OrdinalIgnoreCase) || !seen.Add(controller))
+                    continue;
+                var prefixes = MvcAttributes(controller).Where(a => a.AttributeClass!.Name == "RouteAttribute")
+                    .Select(Template).DefaultIfEmpty("").ToList();
+                var name = controller.Name[..^"Controller".Length];
+                foreach (var method in controller.GetMembers().OfType<IMethodSymbol>())
+                {
+                    if (method.MethodKind != MethodKind.Ordinary || method.IsStatic || method.DeclaredAccessibility != Accessibility.Public)
+                        continue;
+                    var attributes = MvcAttributes(method).ToList();
+                    if (attributes.Any(a => a.AttributeClass!.Name == "NonActionAttribute")) continue;
+                    var routes = attributes.Where(a => a.AttributeClass!.Name == "RouteAttribute").Select(Template).ToList();
+                    var xml = XmlDocumentationReader.Read(method);
+                    var responses = Responses(method, attributes, schemas);
+                    var location = method.Locations[0].GetLineSpan();
+                    foreach (var attribute in attributes)
+                    {
+                        var attributeName = attribute.AttributeClass!.Name;
+                        if (!attributeName.StartsWith("Http") || !attributeName.EndsWith("Attribute") ||
+                            !Enum.TryParse<HttpVerb>(attributeName[4..^9], true, out var verb)) continue;
+                        var template = Template(attribute);
+                        IEnumerable<string> templates = template.Length == 0 && routes.Count > 0 ? routes : [template];
+                        var paths = from prefix in prefixes from suffix in templates select Combine(prefix, suffix);
+                        foreach (var path in paths.Distinct())
+                        {
+                            var route = RouteNormalizer.Normalize(path.Replace("[controller]", name)
+                                .Replace("[action]", method.Name));
+                            var parameters = new List<Parameter>();
+                            foreach (var parameter in method.Parameters)
+                            {
+                                var binding = ParameterFor(parameter, route, schemas, XmlDocumentationReader.GetParameter(xml, parameter.Name));
+                                if (binding is not null) parameters.Add(binding);
+                            }
+                            endpoints.Add(new Endpoint(verb, route, $"{verb.ToString().ToUpperInvariant()} {route}",
+                                parameters, responses, XmlDocumentationReader.GetSummary(xml), XmlDocumentationReader.GetReturns(xml),
+                                location.Path, location.StartLinePosition.Line + 1));
+                        }
+                    }
+                }
+            }
+        }
+        var duplicate = endpoints.GroupBy(e => e.Key).FirstOrDefault(g => g.Count() > 1);
+        if (duplicate is not null)
+            throw new InvalidOperationException($"Обнаружены эндпоинты с одинаковым ключом: {duplicate.Key}." +
+                Environment.NewLine + string.Join(Environment.NewLine, duplicate.Select(e => $"{e.FilePath}:{e.Line}")));
+        return new ApiDescription(project.Name, "v1", endpoints) { Components = schemas.Components };
+    }
+
+    private static IEnumerable<AttributeData> MvcAttributes(ISymbol symbol) =>
+        symbol.GetAttributes().Where(a => a.AttributeClass?.ContainingNamespace.ToDisplayString() == "Microsoft.AspNetCore.Mvc");
+
+    private static string Template(AttributeData attribute) =>
+        attribute.ConstructorArguments.FirstOrDefault().Value as string ?? "";
+
+    private static string Combine(string prefix, string template)
+    {
+        if (template.StartsWith("~/")) return template[1..];
+        if (template.StartsWith('/')) return template;
+        return $"{prefix.TrimEnd('/')}/{template}";
+    }
+
+    private static Parameter? ParameterFor(IParameterSymbol parameter, string route, DtoSchemas schemas, string? description)
+    {
+        var type = parameter.Type;
+        var attributes = MvcAttributes(parameter).ToList();
+        if (type.ToDisplayString() == "System.Threading.CancellationToken" ||
+            attributes.Any(a => a.AttributeClass!.Name == "FromServicesAttribute")) return null;
+
+        var binding = attributes.FirstOrDefault(a => a.AttributeClass!.Name is
+            "FromHeaderAttribute" or "FromRouteAttribute" or "FromQueryAttribute" or "FromBodyAttribute");
+        var name = binding?.NamedArguments.FirstOrDefault(a => a.Key == "Name").Value.Value as string ?? parameter.Name;
+        var typeName = Display(type);
+        var source = binding?.AttributeClass?.Name switch
+        {
+            "FromHeaderAttribute" => ParameterSource.Header,
+            "FromRouteAttribute" => ParameterSource.Route,
+            "FromQueryAttribute" => ParameterSource.Query,
+            "FromBodyAttribute" => ParameterSource.Body,
+            _ when route.Contains("{" + name + "}", StringComparison.OrdinalIgnoreCase) => ParameterSource.Route,
+            _ when type.TypeKind == TypeKind.Enum || Generation.TypeMapper.Map(typeName).Type != "object" => ParameterSource.Query,
+            _ => ParameterSource.Body
+        };
+        var required = source == ParameterSource.Route || (!typeName.EndsWith('?') && !parameter.HasExplicitDefaultValue);
+        return new Parameter(name, typeName, source, required, description) { Schema = schemas.Create(type) };
+    }
+
+    private static string Display(ITypeSymbol type) => type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+
+    private static List<ApiResponse> Responses(IMethodSymbol method, List<AttributeData> attributes, DtoSchemas schemas)
+    {
+        var result = new List<ApiResponse>();
+        var type = method.ReturnType;
+        while (type is INamedTypeSymbol { TypeArguments.Length: 1 } wrapper &&
+            wrapper.Name is "Task" or "ValueTask" or "ActionResult")
+            type = wrapper.TypeArguments[0];
+        var inferred = type.SpecialType == SpecialType.System_Void || type.Name is "IActionResult" or "ActionResult" or "Task" or "ValueTask" ? null : type;
+        foreach (var attribute in attributes.Where(a => a.AttributeClass!.Name == "ProducesResponseTypeAttribute"))
+        {
+            var args = attribute.ConstructorArguments;
+            if (args.FirstOrDefault(a => a.Value is int).Value is not int status) continue;
+            var body = attribute.AttributeClass!.TypeArguments.FirstOrDefault() ??
+                args.FirstOrDefault(a => a.Kind == TypedConstantKind.Type).Value as ITypeSymbol;
+            if (status is >= 200 and < 300 and not 204) body ??= inferred;
+            result.Add(Response(status, body, schemas));
+        }
+        if (result.Count == 0 && inferred is not null) result.Add(Response(200, inferred, schemas));
+        return result;
+    }
+
+    private static ApiResponse Response(int status, ITypeSymbol? type, DtoSchemas schemas) =>
+        type is null ? new ApiResponse(status) : new ApiResponse(status, Display(type)) { Schema = schemas.Create(type) };
 }

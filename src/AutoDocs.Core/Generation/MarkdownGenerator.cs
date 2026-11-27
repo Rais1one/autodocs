@@ -24,7 +24,7 @@ public class MarkdownGenerator
             document.Root.Add(
                 new MdHeading($"{method} {endpoint.Route}", 2));
 
-            // Описание эндпоинта
+           
             if (!string.IsNullOrWhiteSpace(endpoint.Summary))
             {
                 document.Root.Add(
@@ -72,6 +72,29 @@ public class MarkdownGenerator
             }
         }
 
+        if (api.Components?.Schemas is { Count: > 0 } schemas)
+        {
+            document.Root.Add(new MdHeading("Модели данных", 2));
+            foreach (var (name, schema) in schemas.OrderBy(entry => entry.Key, StringComparer.Ordinal))
+            {
+                document.Root.Add(new MdHeading(schema.Title ?? name, 3));
+                if (schema.Properties is null) continue;
+                foreach (var (propertyName, property) in schema.Properties)
+                {
+                    var required = schema.Required?.Contains(propertyName) == true ? "да" : "нет";
+                    document.Root.Add(new MdParagraph(
+                        $"{propertyName}: {SchemaType(property)}. Обязательное поле: {required}."));
+                }
+            }
+        }
+
         document.Save(outputPath);
+    }
+
+    private static string SchemaType(Microsoft.OpenApi.IOpenApiSchema schema)
+    {
+        if (schema.Title is not null) return schema.Title;
+        if (schema.Items is not null) return $"массив ({schema.Items.Title ?? schema.Items.Type?.ToString()})";
+        return schema.Format ?? schema.Type?.ToString()?.ToLowerInvariant() ?? "object";
     }
 }

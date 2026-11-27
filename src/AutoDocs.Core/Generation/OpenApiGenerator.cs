@@ -14,10 +14,11 @@ public class OpenApiGenerator
                 Title = api.Title,
                 Version = api.Version
             },
+            Components = api.Components,
             Paths = new OpenApiPaths()
         };
 
-     
+
         foreach (var endpoint in api.Endpoints
                      .OrderBy(e => e.Route)
                      .ThenBy(e => e.HttpMethod))
@@ -80,7 +81,7 @@ public class OpenApiGenerator
                     {
                         ["application/json"] = new OpenApiMediaType
                         {
-                            Schema = CreateSchema(parameter.Type)
+                            Schema = parameter.Schema ?? CreateSchema(parameter.Type)
                         }
                     }
                 };
@@ -106,7 +107,7 @@ public class OpenApiGenerator
                 Required = parameter.Source == ParameterSource.Route
                            || parameter.IsRequired,
 
-                Schema = CreateSchema(parameter.Type)
+                Schema = parameter.Schema ?? CreateSchema(parameter.Type)
             });
         }
 
@@ -124,7 +125,7 @@ public class OpenApiGenerator
                     {
                         ["application/json"] = new OpenApiMediaType
                         {
-                            Schema = CreateSchema(response.TypeName)
+                            Schema = response.Schema ?? CreateSchema(response.TypeName)
                         }
                     };
             }
@@ -144,7 +145,7 @@ public class OpenApiGenerator
         return operation;
     }
 
-    private static OpenApiSchema CreateSchema(string typeName)
+    internal static OpenApiSchema CreateSchema(string typeName)
     {
         typeName = typeName.Trim().TrimEnd('?');
 

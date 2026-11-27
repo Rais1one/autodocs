@@ -1,15 +1,4 @@
-﻿// Primitive type mappings adapted from Swashbuckle.AspNetCore.
-// Copyright (c) 2016 Richard Morris.
-// Licensed under the MIT License.
-// https://github.com/domaindrivendev/Swashbuckle.AspNetCore
-//
-// Adapted for string-based type mapping in AutoDocs.
-// See licenses/Swashbuckle-LICENSE.txt.
-
-
-
-
-namespace AutoDocs.Core.Generation;
+﻿namespace AutoDocs.Core.Generation;
 
 public static class TypeMapper
 {

@@ -4,8 +4,7 @@ using AutoDocs.Core.Normalization;
 
 namespace AutoDocs.Core.Comparison;
 
-// Algorithm inspired by OpenAPITools/openapi-diff.
-// https://github.com/OpenAPITools/openapi-diff
+
 public class ApiComparer
 {
     public IReadOnlyList<Discrepancy> Compare(
@@ -20,7 +19,7 @@ public class ApiComparer
         var newEndpoints = current.Endpoints
             .ToDictionary(GetEndpointKey);
 
-        // Удалённые эндпоинты
+        
         foreach (var entry in oldEndpoints)
         {
             if (!newEndpoints.ContainsKey(entry.Key))
@@ -35,7 +34,7 @@ public class ApiComparer
             }
         }
 
-        // Добавленные и изменённые эндпоинты
+        
         foreach (var entry in newEndpoints)
         {
             if (!oldEndpoints.TryGetValue(
@@ -90,8 +89,7 @@ public class ApiComparer
     {
         var route = RouteNormalizer.Normalize(endpoint.Route);
 
-        // Имена параметров маршрута не влияют
-        // на сопоставление эндпоинтов.
+        
         route = Regex.Replace(
             route,
             @"\{([^/{}]+)\}",
@@ -111,14 +109,13 @@ public class ApiComparer
 
         foreach (var current in newEndpoint.Parameters)
         {
-            // Имя параметра тела запроса в OpenAPI
-            // не сохраняется.
+            
             var old = unmatched.FirstOrDefault(p =>
                 p.Source == current.Source &&
                 (current.Source == ParameterSource.Body ||
                  p.Name == current.Name));
 
-            // Поиск параметра с изменённым источником.
+            
             old ??= unmatched.FirstOrDefault(p =>
                 p.Name == current.Name);
 
@@ -138,16 +135,18 @@ public class ApiComparer
 
             unmatched.Remove(old);
 
+            var oldShape = SchemaShape.Describe(old.Schema);
+            var newShape = SchemaShape.Describe(current.Schema);
             if (!TypeNormalizer.AreEquivalent(
-                    old.Type, current.Type))
+                    old.Type, current.Type) || oldShape != newShape)
             {
                 differences.Add(new Discrepancy(
                     DiscrepancyKind.ParameterTypeChanged,
                     DiscrepancySeverity.Error,
                     key,
                     $"Изменён тип параметра {current.Name}.",
-                    old.Type,
-                    current.Type
+                    oldShape ?? old.Type,
+                    newShape ?? current.Type
                 ));
             }
 
@@ -245,17 +244,19 @@ public class ApiComparer
                 continue;
             }
 
+            var oldShape = SchemaShape.Describe(oldResponse.Schema);
+            var newShape = SchemaShape.Describe(entry.Value.Schema);
             if (!TypeNormalizer.AreEquivalent(
                     oldResponse.TypeName,
-                    entry.Value.TypeName))
+                    entry.Value.TypeName) || oldShape != newShape)
             {
                 differences.Add(new Discrepancy(
                     DiscrepancyKind.ResponseTypeChanged,
                     DiscrepancySeverity.Error,
                     key,
                     $"Изменён тип ответа HTTP {entry.Key}.",
-                    oldResponse.TypeName,
-                    entry.Value.TypeName
+                    oldShape ?? oldResponse.TypeName,
+                    newShape ?? entry.Value.TypeName
                 ));
             }
         }

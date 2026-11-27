@@ -6,4 +6,8 @@ public record Parameter(
     ParameterSource Source,
     bool IsRequired,
     string? Description = null
-);
+)
+{
+    [System.Text.Json.Serialization.JsonIgnore]
+    public Microsoft.OpenApi.IOpenApiSchema? Schema { get; init; }
+}

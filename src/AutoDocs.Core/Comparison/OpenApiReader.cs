@@ -59,35 +59,35 @@ public class OpenApiReader
                 var parameters = new List<Parameter>();
                 var responses = new List<ApiResponse>();
 
-                if (operation.Parameters is not null)
+                var effective = (operation.Parameters ?? []).Concat(path.Value.Parameters ?? [])
+                    .DistinctBy(p => (p.In, p.Name));
+                foreach (var parameter in effective)
                 {
-                    foreach (var parameter in operation.Parameters)
+                    ParameterSource? source = parameter.In switch
                     {
-                        ParameterSource? source = parameter.In switch
-                        {
-                            ParameterLocation.Path =>
-                                ParameterSource.Route,
+                        ParameterLocation.Path =>
+                            ParameterSource.Route,
 
-                            ParameterLocation.Query =>
-                                ParameterSource.Query,
+                        ParameterLocation.Query =>
+                            ParameterSource.Query,
 
-                            ParameterLocation.Header =>
-                                ParameterSource.Header,
+                        ParameterLocation.Header =>
+                            ParameterSource.Header,
 
-                            _ => null
-                        };
+                        _ => null
+                    };
 
-                        if (source is null)
-                            continue;
+                    if (source is null)
+                        continue;
 
-                        parameters.Add(new Parameter(
-                            parameter.Name ?? "",
-                            ReadSchema(parameter.Schema),
-                            source.Value,
-                            parameter.Required,
-                            parameter.Description
-                        ));
-                    }
+                    parameters.Add(new Parameter(
+                        parameter.Name ?? "",
+                        ReadSchema(parameter.Schema),
+                        source.Value,
+                        parameter.Required,
+                        parameter.Description
+                    )
+                    { Schema = parameter.Schema });
                 }
 
                 if (operation.RequestBody is not null &&
@@ -101,7 +101,8 @@ public class OpenApiReader
                         ParameterSource.Body,
                         operation.RequestBody.Required,
                         operation.RequestBody.Description
-                    ));
+                    )
+                    { Schema = body.Schema });
                 }
 
                 if (operation.Responses is not null)
@@ -114,19 +115,20 @@ public class OpenApiReader
                             continue;
                         }
 
-                        string? typeName = null;
+                        IOpenApiSchema? responseSchema = null;
 
                         if (response.Value.Content is not null &&
                             response.Value.Content.TryGetValue(
                                 "application/json", out var content))
                         {
-                            typeName = ReadSchema(content.Schema);
+                            responseSchema = content.Schema;
                         }
 
                         responses.Add(new ApiResponse(
                             statusCode,
-                            typeName
-                        ));
+                            responseSchema is null ? null : ReadSchema(responseSchema)
+                        )
+                        { Schema = responseSchema });
                     }
                 }
 
@@ -146,7 +148,8 @@ public class OpenApiReader
             document.Info?.Title ?? "Unknown API",
             document.Info?.Version ?? "1.0.0",
             endpoints
-            );
+            )
+        { Components = document.Components };
 
     }
 

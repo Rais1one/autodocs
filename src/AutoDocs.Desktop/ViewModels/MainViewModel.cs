@@ -3,21 +3,13 @@ using AutoDocs.Desktop.Views;
 using System.Windows.Data;
 using System.Diagnostics;
 using AutoDocs.Application.Models;
-
 using AutoDocs.Application.Services;
-
 using AutoDocs.Desktop.Services;
-
 using CommunityToolkit.Mvvm.ComponentModel;
-
 using CommunityToolkit.Mvvm.Input;
-
 using System.IO;
-
-using System.Threading.Tasks;
-
+using System.Threading.Tasks; 
 using System.Collections.ObjectModel;
-
 using AutoDocs.Core.Model;
 
 namespace AutoDocs.Desktop.ViewModels;
